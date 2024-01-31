@@ -1,5 +1,6 @@
 import typing
 
+from typing import TypeVar
 from itertools import chain
 from worlds.AutoWorld import World
 from BaseClasses import CollectionState, Region
@@ -17,7 +18,10 @@ from .duelists import Duelist, mage_pairs
 from .drop_pools import DuelRank, Drop
 
 
-def flatten(i: typing.Iterable) -> typing.List:
+T = TypeVar("T")
+
+
+def flatten(i: typing.Iterable[typing.Iterable[T]]) -> typing.List[T]:
     return list(chain.from_iterable(i))
 
 
@@ -108,7 +112,7 @@ class FMWorld(World):
                 (Duelist.YAMI_BAKURA,),
                 (Duelist.PEGASUS,),
                 (Duelist.ISIS,),
-                (Duelist.KAIBA),
+                (Duelist.KAIBA,),
                 (Duelist.MAGE_SOLDIER, Duelist.JONO_2ND, Duelist.TEANA_2ND)
             ]
             def pop_random_pair(x): return x.pop(self.random.randint(0, len(x) - 1))
@@ -120,17 +124,17 @@ class FMWorld(World):
             self.duelist_unlock_order.append(tuple(first_mages_unlocked))
             self.duelist_unlock_order.append((Duelist.LABYRINTH_MAGE,))
             self.duelist_unlock_order.append((Duelist.SETO_2ND,))
-            self.duelist_unlock_order.append(tuple(mages))
+            self.duelist_unlock_order.append(tuple(flatten(mages)))
         elif self.options.duelist_progression.value == DuelistProgression.option_singular:
             mages = list(chain.from_iterable(mage_pairs))
             # These are already unlocked/disallowed
             do_not_add = (Duelist.HEISHIN, Duelist.SIMON_MURAN, Duelist.DUEL_MASTER_K)
             for duelist in Duelist:
                 if duelist not in do_not_add and duelist not in mages and not duelist.is_final_6:
-                    self.duelist_unlock_order.append(tuple(duelist))
+                    self.duelist_unlock_order.append((duelist,))
             self.random.shuffle(mages)
             for mage in mages:
-                self.duelist_unlock_order.append(tuple(mage))
+                self.duelist_unlock_order.append((mage,))
         else:
             raise ValueError(f"Invalid DuelistProgression option: {self.options.duelist_progression.value}")
 

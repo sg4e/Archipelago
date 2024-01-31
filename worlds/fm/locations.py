@@ -24,17 +24,18 @@ def get_location_id_for_duelist(duelist: Duelist) -> int:
 
 
 class FMLocation(Location):
-    game: Constants.GAME_NAME
+    game: str
     unique_id: int
 
     def __init__(self, region: Region, player: int, name: str, id: int):
         super().__init__(player, name, parent=region)
+        self.game = Constants.GAME_NAME
         self.unique_id = id
 
 
 class CardLocation(FMLocation):
     """A check whenever a card is added to the library."""
-    card: typing.ClassVar[Card]
+    card: Card
     accessible_drops: typing.List[Drop]
 
     def __init__(self, region: Region, player: int, card: Card):
@@ -49,7 +50,7 @@ class CardLocation(FMLocation):
 
 class DuelistLocation(FMLocation):
     """A check whenever a duelist is defeated (the first time)."""
-    duelist: typing.ClassVar[Duelist]
+    duelist: Duelist
 
     def __init__(self, region: Region, player: int, duelist: Duelist):
         super().__init__(region, player, get_location_name_for_duelist(duelist), get_location_id_for_duelist(duelist))

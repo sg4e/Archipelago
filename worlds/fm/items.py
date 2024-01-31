@@ -3,7 +3,7 @@ import typing
 from BaseClasses import Item, ItemClassification
 from .constants import Constants
 
-starchip_values: typing.Tuple[int] = (1, 5, 100)
+starchip_values: typing.Tuple[int, int, int] = (1, 5, 100)
 starchip_values_to_strings: typing.Dict[int, str] = {
     value: f"Starchip{'' if value == 1 else f's x{value}'}"
     for value in starchip_values
