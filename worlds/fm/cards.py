@@ -1,5 +1,6 @@
 import typing
 
+from itertools import chain
 from typing import Optional
 from enum import Enum
 from .drop_pools import card_id_to_pools
@@ -67,7 +68,7 @@ class Card:
     type: Type
     attribute: Optional[Attribute]
     password: Optional[str]
-    drop_pools: typing.Dict  # DuelRank -> List[Drop]
+    drop_pool: typing.List  # [Drop], populated later
 
     def __init__(self, _id: int, level: int, attack: int, defense: int, starchips: int, name: str,
                  first_guardian_star: Optional[GuardianStar], second_guardian_star: Optional[GuardianStar],
@@ -85,9 +86,9 @@ class Card:
         self.password = password
         # FM-TODO: add ways to obtain card besides drops (e.g fusions, rituals, starchips)
         if self.id in card_id_to_pools:
-            self.drop_pools = card_id_to_pools[self.id]
+            self.drop_pool = list(chain.from_iterable(card_id_to_pools[self.id].values()))
         else:
-            self.drop_pools = {}
+            self.drop_pool = []
 
 
 all_cards: typing.Tuple[Card, ...] = (

@@ -1,3 +1,5 @@
+import typing
+
 from enum import Enum
 
 
@@ -34,18 +36,28 @@ class Duelist(Enum):
     HIGH_MAGE_KEPURA = (30, 16, "High Mage Kepura")
     LABYRINTH_MAGE = (31, 16, "Labyrinth Mage")
     SETO_2ND = (32, 18, "Seto 2nd")
-    GUARDIAN_SEBEK = (33, 20, "Guardian Sebek")
-    GUARDIAN_NEKU = (34, 20, "Guardian Neku")
-    HEISHIN_2ND = (35, 20, "Heishin 2nd")
-    SETO_3RD = (36, 20, "Seto 3rd")
-    DARKNITE = (37, 20, "DarkNite")
-    NITEMARE = (38, 20, "Nitemare")
+    GUARDIAN_SEBEK = (33, 20, "Guardian Sebek", True)
+    GUARDIAN_NEKU = (34, 20, "Guardian Neku", True)
+    HEISHIN_2ND = (35, 20, "Heishin 2nd", True)
+    SETO_3RD = (36, 20, "Seto 3rd", True)
+    DARKNITE = (37, 20, "DarkNite", True)
+    NITEMARE = (38, 20, "Nitemare", True)
     DUEL_MASTER_K = (39, 15, "Duel Master K")
 
-    def __init__(self, _id, hand_size, _name):
+    def __init__(self, _id, hand_size, _name, is_final_6: bool = False):
         self.id: int = _id
         self.hand_size: int = hand_size
         self._name: str = _name
+        self.is_final_6: bool = is_final_6
 
     def __str__(self):
         return self._name
+
+
+mage_pairs: typing.Tuple[typing.Tuple[Duelist, Duelist], ...] = (
+    (Duelist.OCEAN_MAGE, Duelist.HIGH_MAGE_SECMETON),
+    (Duelist.FOREST_MAGE, Duelist.HIGH_MAGE_ANUBISIUS),
+    (Duelist.MOUNTAIN_MAGE, Duelist.HIGH_MAGE_ATENZA),
+    (Duelist.DESERT_MAGE, Duelist.HIGH_MAGE_MARTIS),
+    (Duelist.MEADOW_MAGE, Duelist.HIGH_MAGE_KEPURA)
+)

@@ -4,6 +4,7 @@ from BaseClasses import Location
 from .cards import Card, all_cards
 from .constants import Constants
 from .duelists import Duelist
+from .drop_pools import Drop
 
 
 def get_location_name_for_card(card: Card) -> str:
@@ -31,13 +32,19 @@ class FMLocation(Location):
         self.unique_id = id
 
 
-class LibraryLocation(FMLocation):
+class CardLocation(FMLocation):
     """A check whenever a card is added to the library."""
     card: typing.ClassVar[Card]
+    accessible_drops: typing.List[Drop]
 
     def __init__(self, player: int, card: Card):
         super().__init__(player, get_location_name_for_card(card), get_location_id_for_card(card))
         self.card = card
+        self.accessible_drops = []
+
+    def attach_drops(self, drops: typing.List[Drop]):
+        """Attaches all in-logic and in-settings drop probabilities to this location."""
+        self.accessible_drops.extend(drops)
 
 
 class DuelistLocation(FMLocation):

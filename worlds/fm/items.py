@@ -1,6 +1,6 @@
 import typing
 
-from BaseClasses import Item
+from BaseClasses import Item, ItemClassification
 from .constants import Constants
 
 starchip_values: typing.Tuple[int] = (1, 5, 100)
@@ -25,3 +25,20 @@ item_name_to_item_id: typing.Dict[str, int] = {value: key for key, value in item
 
 class FMItem(Item):
     game: str = Constants.GAME_NAME
+
+
+def create_item(name: str, player_id: int) -> FMItem:
+    return FMItem(name, ItemClassification.progression if name == progressive_duelist_item_name
+                  else ItemClassification.filler, item_name_to_item_id[name], player_id)
+
+
+def create_victory_event(player_id: int) -> FMItem:
+    return FMItem(victory_event_name, ItemClassification.progression, None, player_id)
+
+
+def create_starchip_items(player_id: int, count: int) -> typing.List[FMItem]:
+    items: typing.List[FMItem] = []
+    # FM-TODO: added different starchip values
+    for _ in range(count):
+        items.append(create_item(starchip_values_to_strings[1], player_id))
+    return items
