@@ -200,8 +200,9 @@ class FMWorld(World):
         # Add progressive duelist items
         for _ in range(len(self.duelist_unlock_order) + 1):  # I think you need +1 for entry into Final 6
             itempool.append(self.create_item(progressive_duelist_item_name))
-        # This cheats a bit: you can submit more items than slots, and we do by a little bit
-        itempool.extend(create_starchip_items(self.player, len(reachable_cards) + len(Duelist)))
+        # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
+        itempool.extend(create_starchip_items(self.player, len(menu_region.locations) - len(itempool)
+                                              - len(final_6_duelist_locations)))
         self.multiworld.itempool.extend(itempool)
 
         self.multiworld.regions.append(menu_region)
