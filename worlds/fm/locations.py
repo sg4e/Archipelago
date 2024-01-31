@@ -25,12 +25,11 @@ def get_location_id_for_duelist(duelist: Duelist) -> int:
 
 class FMLocation(Location):
     game: str
-    unique_id: int
 
     def __init__(self, region: Region, player: int, name: str, id: int):
         super().__init__(player, name, parent=region)
         self.game = Constants.GAME_NAME
-        self.unique_id = id
+        self.address = id
 
 
 class CardLocation(FMLocation):
