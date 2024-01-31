@@ -1,6 +1,6 @@
 import typing
 
-from BaseClasses import Location
+from BaseClasses import Location, Region
 from .cards import Card, all_cards
 from .constants import Constants
 from .duelists import Duelist
@@ -27,8 +27,8 @@ class FMLocation(Location):
     game: Constants.GAME_NAME
     unique_id: int
 
-    def __init__(self, player: int, name: str, id: int):
-        super().__init__(player, name)
+    def __init__(self, region: Region, player: int, name: str, id: int):
+        super().__init__(player, name, parent=region)
         self.unique_id = id
 
 
@@ -37,8 +37,8 @@ class CardLocation(FMLocation):
     card: typing.ClassVar[Card]
     accessible_drops: typing.List[Drop]
 
-    def __init__(self, player: int, card: Card):
-        super().__init__(player, get_location_name_for_card(card), get_location_id_for_card(card))
+    def __init__(self, region: Region, player: int, card: Card):
+        super().__init__(region, player, get_location_name_for_card(card), get_location_id_for_card(card))
         self.card = card
         self.accessible_drops = []
 
@@ -51,8 +51,8 @@ class DuelistLocation(FMLocation):
     """A check whenever a duelist is defeated (the first time)."""
     duelist: typing.ClassVar[Duelist]
 
-    def __init__(self, player: int, duelist: Duelist):
-        super().__init__(player, get_location_name_for_duelist(duelist), get_location_id_for_duelist(duelist))
+    def __init__(self, region: Region, player: int, duelist: Duelist):
+        super().__init__(region, player, get_location_name_for_duelist(duelist), get_location_id_for_duelist(duelist))
         self.duelist = duelist
 
 

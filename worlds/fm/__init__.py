@@ -151,7 +151,7 @@ class FMWorld(World):
         card_locations: typing.List[CardLocation] = []
         for card in reachable_cards:
             if card.drop_pool:  # It's in some drop pool
-                card_locations.append(CardLocation(self.player, card))
+                card_locations.append(CardLocation(menu_region, self.player, card))
 
         # If obtaining a card is outside of the player's settings, set it to excluded
         logical_atec_duelists: typing.List[Duelist] = []
@@ -175,7 +175,7 @@ class FMWorld(World):
         final_6_duelist_locations: typing.List[DuelistLocation] = []
         for duelist in Duelist:
             if duelist is not Duelist.HEISHIN:
-                duelist_location: DuelistLocation = DuelistLocation(self.player, duelist)
+                duelist_location: DuelistLocation = DuelistLocation(menu_region, self.player, duelist)
                 set_rule(duelist_location, lambda state: duelist_location.duelist in self.get_available_duelists(state))
                 if duelist.is_final_6:
                     final_6_duelist_locations.append(duelist_location)
