@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Range, Choice, PerGameCommonOptions
+from Options import Toggle, Range, Choice, PerGameCommonOptions
 
 
 class DuelistProgression(Choice):
@@ -86,7 +86,8 @@ class ATecLogic(Choice):
     "All" means all duelists' SATec pools are in logic.
 
     Regardless of your choice, you will never be expected to do an ATec until you have access to Pegasus, Isis, or Kaiba
-    (to acquire an Acid Trap Hole or Widespread Ruin).
+    (to acquire an Acid Trap Hole or Widespread Ruin), or Bakura, Keith, or Mai if you have "Invisible Wire enables
+    ATecs" set to "On".
     """
     display_name = "ATec Logic"
     option_off = 0
@@ -103,6 +104,14 @@ class ATecLogic(Choice):
             return cls.name_lookup[value]
 
 
+class InvisibleWireLogic(Toggle):
+    """
+    If set to "On", ATecs become part of logic if you have access to a duelist that drops Invisible Wire on BCD (Bakura,
+    Keith, and Mai). Your other ATec settings are still respected.
+    """
+    display_name = "Invisible Wire enables ATecs"
+
+
 @dataclass
 class FMOptions(PerGameCommonOptions):
     duelist_progression: DuelistProgression
@@ -110,3 +119,4 @@ class FMOptions(PerGameCommonOptions):
     final6_sequence: Final6Sequence
     atec_logic: ATecLogic
     drop_rate_logic: DropRateLogic
+    invisible_wire_logic: InvisibleWireLogic
