@@ -2,8 +2,8 @@ import typing
 
 from typing import TypeVar
 from itertools import chain
-from worlds.AutoWorld import World
-from BaseClasses import CollectionState, Region
+from worlds.AutoWorld import World, WebWorld
+from BaseClasses import CollectionState, Region, Tutorial
 from worlds.generic.Rules import set_rule
 from .items import item_name_to_item_id as item_id_map
 from .items import create_item as fabricate_item
@@ -25,7 +25,23 @@ def flatten(i: typing.Iterable[typing.Iterable[T]]) -> typing.List[T]:
     return list(chain.from_iterable(i))
 
 
+class FMWeb(WebWorld):
+    theme = "dirt"
+
+    setup_en = Tutorial(
+        "Multiworld Setup Guide",
+        "A guide to setting up Yu-Gi-Oh! Forbidden Memories connected to an Archipelago Multiworld.",
+        "English",
+        "setup_en.md",
+        "setup/en",
+        ["sg4e"]
+    )
+
+    tutorials = [setup_en]
+
+
 class FMWorld(World):
+    """Yu-Gi-Oh! Forbidden Memories is a game."""
     game: str = Constants.GAME_NAME
     options_dataclass = FMOptions
     options: FMOptions
