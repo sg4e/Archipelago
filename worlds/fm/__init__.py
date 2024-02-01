@@ -30,7 +30,7 @@ class FMWeb(WebWorld):
 
     setup_en = Tutorial(
         "Multiworld Setup Guide",
-        "A guide to setting up Yu-Gi-Oh! Forbidden Memories connected to an Archipelago Multiworld.",
+        f"A guide to setting up {Constants.GAME_NAME} connected to an Archipelago Multiworld.",
         "English",
         "setup_en.md",
         "setup/en",
@@ -46,6 +46,7 @@ class FMWorld(World):
     options_dataclass = FMOptions
     options: FMOptions
     required_client_version = (0, 4, 4)
+    web = FMWeb()
 
     final_6_order: typing.List[Duelist]
     # each tuple is a group of duelists unlocked with a single Progressive Duelist item before Final 6
