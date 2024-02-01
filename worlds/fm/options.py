@@ -118,5 +118,5 @@ class FMOptions(PerGameCommonOptions):
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence
     atec_logic: ATecLogic
-    drop_rate_logic: DropRateLogic
     invisible_wire_logic: InvisibleWireLogic
+    drop_rate_logic: DropRateLogic
