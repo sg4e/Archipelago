@@ -159,8 +159,9 @@ class FMWorld(World):
         return fabricate_item(name, self.player)
 
     def create_regions(self) -> None:
-        # All duelists are accessible from the menu, so it's our only region
         menu_region = Region("Menu", self.player, self.multiworld)
+        # All duelists are accessible from the menu, so it's our only region
+        free_duel_region = Region("Free Duel", self.player, self.multiworld)
 
         # These cards are not obtainable by any means besides hacking
         unobtainable_ids: typing.Tuple[int, ...] = (
@@ -172,7 +173,7 @@ class FMWorld(World):
         card_locations: typing.List[CardLocation] = []
         for card in reachable_cards:
             if card.drop_pool:  # It's in some drop pool
-                card_locations.append(CardLocation(menu_region, self.player, card))
+                card_locations.append(CardLocation(free_duel_region, self.player, card))
 
         # If obtaining a card is outside of the player's settings, set it to excluded
         logical_atec_duelists: typing.List[Duelist] = []
@@ -188,20 +189,21 @@ class FMWorld(World):
         for location in card_locations:
             in_logic: typing.List[Drop] = self.determine_accessible_drops(location.card, logical_atec_duelists)
             location.attach_drops(in_logic)
-            set_rule(location, lambda state: self.is_card_location_accessible(location, state))
-        menu_region.locations.extend(card_locations)
+            set_rule(location, lambda state, card=location: self.is_card_location_accessible(card, state))
+        free_duel_region.locations.extend(card_locations)
 
         # Add duelist locations
         # Hold a reference to these to set locked items and victory event
         final_6_duelist_locations: typing.List[DuelistLocation] = []
         for duelist in Duelist:
             if duelist is not Duelist.HEISHIN:
-                duelist_location: DuelistLocation = DuelistLocation(menu_region, self.player, duelist)
-                set_rule(duelist_location, lambda state: duelist_location.duelist in self.get_available_duelists(state))
+                duelist_location: DuelistLocation = DuelistLocation(free_duel_region, self.player, duelist)
+                set_rule(duelist_location, (lambda state, d=duelist_location:
+                                            d.duelist in self.get_available_duelists(state)))
                 if duelist.is_final_6:
                     final_6_duelist_locations.append(duelist_location)  # These get added to the region later
                 else:
-                    menu_region.locations.append(duelist_location)
+                    free_duel_region.locations.append(duelist_location)
         final_6_duelist_locations.sort(key=lambda x: self.final_6_order.index(x.duelist))
         self.multiworld.completion_condition[self.player] = lambda state: state.has(victory_event_name, self.player)
 
@@ -217,13 +219,15 @@ class FMWorld(World):
         final_6_duelist_locations[-1].place_locked_item(create_victory_event(self.player))
         # Event location and item both need to be "None" or the Generator complains
         final_6_duelist_locations[-1].address = None
-        menu_region.locations.extend(final_6_duelist_locations)
+        free_duel_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
         for _ in range(len(self.duelist_unlock_order) + 1):  # I think you need +1 for entry into Final 6
             itempool.append(self.create_item(progressive_duelist_item_name))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
-        itempool.extend(create_starchip_items(self.player, len(menu_region.locations) - len(itempool)
+        itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)
                                               - len(final_6_duelist_locations)))
         self.multiworld.itempool.extend(itempool)
 
+        menu_region.connect(free_duel_region)
+        self.multiworld.regions.append(free_duel_region)
         self.multiworld.regions.append(menu_region)
