@@ -199,8 +199,9 @@ class FMWorld(World):
                 duelist_location: DuelistLocation = DuelistLocation(menu_region, self.player, duelist)
                 set_rule(duelist_location, lambda state: duelist_location.duelist in self.get_available_duelists(state))
                 if duelist.is_final_6:
-                    final_6_duelist_locations.append(duelist_location)
-                menu_region.locations.append(duelist_location)
+                    final_6_duelist_locations.append(duelist_location)  # These get added to the region later
+                else:
+                    menu_region.locations.append(duelist_location)
         final_6_duelist_locations.sort(key=lambda x: self.final_6_order.index(x.duelist))
         self.multiworld.completion_condition[self.player] = lambda state: state.has(victory_event_name, self.player)
 
@@ -214,6 +215,9 @@ class FMWorld(World):
         else:
             raise ValueError(f"Invalid Final6Progression option: {self.options.final6_progression.value}")
         final_6_duelist_locations[-1].place_locked_item(create_victory_event(self.player))
+        # Event location and item both need to be "None" or the Generator complains
+        final_6_duelist_locations[-1].address = None
+        menu_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
         for _ in range(len(self.duelist_unlock_order) + 1):  # I think you need +1 for entry into Final 6
             itempool.append(self.create_item(progressive_duelist_item_name))
