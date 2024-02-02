@@ -72,8 +72,8 @@ class FMWorld(World):
                 duelists_available.extend(self.duelist_unlock_order[i])
         return duelists_available
 
-    def is_card_location_accessible(self, location: CardLocation, state: CollectionState) -> bool:
-        duelists_available: typing.List[Duelist] = self.get_available_duelists(state)
+    def is_card_location_accessible_with_duelists(self, location: CardLocation,
+                                                  duelists_available: typing.List[Duelist]) -> bool:
         card_probs: typing.List[Drop] = [drop for drop in location.accessible_drops if drop.duelist in
                                          duelists_available]
         if not card_probs:
@@ -87,6 +87,9 @@ class FMWorld(World):
                 trap_drops.extend((Duelist.BANDIT_KEITH, Duelist.MAI_VALENTINE, Duelist.YAMI_BAKURA))
             return any(duelist in duelists_available for duelist in trap_drops)
         return False
+
+    def is_card_location_accessible(self, location: CardLocation, state: CollectionState) -> bool:
+        return self.is_card_location_accessible_with_duelists(location, self.get_available_duelists(state))
 
     def generate_early(self) -> None:
         self.final_6_order = [Duelist.GUARDIAN_SEBEK, Duelist.GUARDIAN_NEKU, Duelist.HEISHIN_2ND, Duelist.SETO_3RD,
@@ -131,6 +134,7 @@ class FMWorld(World):
             7, 17, 18, 28, 51, 52, 56, 57, 60, 62, 63, 67, 235, 252, 284, 288, 299, 369, 428, 429, 499, 541, 554,
             555, 562, 603, 628, 640, 709, 711, 717, 721, 722
         )
+        card_map = {card.id: card for card in all_cards}
         reachable_cards: typing.List[Card] = [card for card in all_cards if card.id not in unobtainable_ids]
         # FM-TODO: fusion-only and ritual-only card logic
         card_locations: typing.List[CardLocation] = []
@@ -152,6 +156,9 @@ class FMWorld(World):
         for location in card_locations:
             in_logic: typing.List[Drop] = self.determine_accessible_drops(location.card, logical_atec_duelists)
             location.attach_drops(in_logic)
+            if not location.accessible_drops:
+                location.exclude()
+                location.attach_drops(card_map[location.card.id].drop_pool)
             set_rule(location, lambda state, card=location: self.is_card_location_accessible(card, state))
         free_duel_region.locations.extend(card_locations)
 

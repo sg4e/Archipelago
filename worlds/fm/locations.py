@@ -1,6 +1,6 @@
 import typing
 
-from BaseClasses import Location, Region
+from BaseClasses import Location, Region, LocationProgressType
 from .cards import Card, all_cards
 from .utils import Constants
 from .duelists import Duelist, get_duelist_defeat_location_name
@@ -30,6 +30,9 @@ class FMLocation(Location):
         super().__init__(player, name, parent=region)
         self.game = Constants.GAME_NAME
         self.address = id
+
+    def exclude(self) -> None:
+        self.progress_type = LocationProgressType.EXCLUDED
 
 
 class CardLocation(FMLocation):
