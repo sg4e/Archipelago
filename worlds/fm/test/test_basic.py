@@ -3,6 +3,7 @@ from ..items import progressive_duelist_item_name
 from ..options import DuelistProgression, duelist_progression_map
 from ..utils import flatten
 from ..duelists import get_duelist_defeat_location_name
+from BaseClasses import LocationProgressType
 
 
 base_options = {
@@ -28,6 +29,41 @@ class TestBasic(FMTestBase):
         self.assert_cannot_reach_location("Widespread Ruin in library")
         self.collect(prog_items[8])
         self.assert_can_reach_location("Widespread Ruin in library")
+
+    def test_no_atecs_required(self) -> None:
+        raigeki = self.get_location("Raigeki in library")
+        self.assertEqual(raigeki.progress_type, LocationProgressType.EXCLUDED)
+
+
+class TestAtecLogic(FMTestBase):
+    options = {
+        **base_options,
+        "atec_logic": "all",
+        "duelist_progression": "campaign"
+    }
+
+    def test_atecs_not_excluded(self) -> None:
+        raigeki = self.get_location("Raigeki in library")
+        self.assertEqual(raigeki.progress_type, LocationProgressType.DEFAULT)
+
+    def test_raigeki_not_in_logic_with_seto_but_no_trap(self) -> None:
+        self.assert_cannot_reach_location("Raigeki in library")
+        self.collect(self.get_item_by_name(progressive_duelist_item_name))
+        self.assert_cannot_reach_location("Raigeki in library")
+
+
+class TestAtecTrapLogic(FMTestBase):
+    options = {
+        **base_options,
+        "atec_logic": "all",
+        "duelist_progression": "campaign",
+        "atec_trap": "fake_trap"
+    }
+
+    def test_raigeki_in_logic_with_seto_and_invisible_wire(self) -> None:
+        self.assert_cannot_reach_location("Raigeki in library")
+        self.collect(self.get_item_by_name(progressive_duelist_item_name))
+        self.assert_can_reach_location("Raigeki in library")
 
 
 # I see no way how to parameterize this at the class level

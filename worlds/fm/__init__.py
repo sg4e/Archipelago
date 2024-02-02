@@ -13,7 +13,7 @@ from .locations import location_name_to_id as location_map
 from .locations import CardLocation, DuelistLocation
 from .cards import Card, all_cards
 from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecLogic,
-                      duelist_progression_map)
+                      ATecTrap, duelist_progression_map)
 from .duelists import Duelist, mage_pairs
 from .drop_pools import DuelRank, Drop
 
@@ -82,9 +82,12 @@ class FMWorld(World):
             return True
         if any(drop.duel_rank is DuelRank.SATEC for drop in card_probs):
             # ATecs are in logic only if the player has access to farming a trap
+            # Acid Trap Hole and Widespread Ruin BCD drops:
             trap_drops: typing.List[Duelist] = [Duelist.PEGASUS, Duelist.ISIS, Duelist.KAIBA]
-            if self.options.invisible_wire_logic.value:
+            if self.options.atec_trap.value <= ATecTrap.option_invisible_wire:
                 trap_drops.extend((Duelist.BANDIT_KEITH, Duelist.MAI_VALENTINE, Duelist.YAMI_BAKURA))
+            if self.options.atec_trap.value <= ATecTrap.option_fake_trap:
+                trap_drops.extend((Duelist.SIMON_MURAN, Duelist.TEANA, Duelist.JONO, Duelist.VILLAGER1))
             return any(duelist in duelists_available for duelist in trap_drops)
         return False
 

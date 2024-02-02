@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from Options import Toggle, Range, Choice, PerGameCommonOptions
+from Options import Range, Choice, PerGameCommonOptions
 from .duelists import Duelist
 
 
@@ -159,12 +159,20 @@ class ATecLogic(Choice):
             return cls.name_lookup[value]
 
 
-class InvisibleWireLogic(Toggle):
+class ATecTrap(Choice):
     """
-    If set to "On", ATecs become part of logic if you have access to a duelist that drops Invisible Wire on BCD (Bakura,
-    Keith, and Mai). Your other ATec settings are still respected.
+    The weakest (i.e. lowest mox Life Point activation) trap card with which you can be expected to ATec a duelist.
+    ATecs will be in logic as soon as you have access to a duelist who drops this card or a stronger trap card,
+    excluding their SATec drop pool. Your other ATec settings are still respected.
+
+    Note that Fake Trap puts ATecs in logic right from the start since it drops off of Simon Muran and Simon Muran is
+    always unlocked.
     """
-    display_name = "Invisible Wire enables ATecs"
+    display_name = "Weakest Trap for ATecs"
+    option_acid_trap_hole = 2
+    option_invisible_wire = 1
+    option_fake_trap = 0
+    default = option_acid_trap_hole
 
 
 @dataclass
@@ -173,5 +181,5 @@ class FMOptions(PerGameCommonOptions):
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence
     atec_logic: ATecLogic
-    invisible_wire_logic: InvisibleWireLogic
+    atec_trap: ATecTrap
     drop_rate_logic: DropRateLogic
