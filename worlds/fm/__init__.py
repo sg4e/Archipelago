@@ -115,6 +115,7 @@ class FMWorld(World):
             self.duelist_unlock_order.append(tuple(flatten(mages)))
         elif self.options.duelist_progression.value == DuelistProgression.option_singular:
             mages = list(chain.from_iterable(mage_pairs))
+            mages += [Duelist.LABYRINTH_MAGE, Duelist.SETO_2ND]
             self.random.shuffle(mages)
             for mage in mages:
                 self.duelist_unlock_order.append((mage,))
