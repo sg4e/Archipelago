@@ -8,7 +8,7 @@ from .drop_pools import Drop
 
 
 def get_location_name_for_card(card: Card) -> str:
-    return f"{card.name} in library"
+    return f"{card.name}"
 
 
 def get_location_id_for_card(card: Card) -> int:
