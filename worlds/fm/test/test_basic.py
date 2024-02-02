@@ -30,6 +30,12 @@ class TestBasic(FMTestBase):
         self.collect(prog_items[8])
         self.assert_can_reach_location("Widespread Ruin")
 
+    def test_heishin_1_out_of_logic(self) -> None:
+        prog_items = self.get_items_by_name(progressive_duelist_item_name)
+        before_isis = prog_items[:8]  # more than enough progression
+        self.collect(before_isis)
+        self.assert_cannot_reach_location("Pumpking the King of Ghosts")
+
     def test_no_atecs_required(self) -> None:
         raigeki = self.get_location("Raigeki")
         self.assertEqual(raigeki.progress_type, LocationProgressType.EXCLUDED)
