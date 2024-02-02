@@ -54,6 +54,10 @@ class Duelist(Enum):
         return self._name
 
 
+def get_duelist_defeat_location_name(duelist: Duelist) -> str:
+    return f"{duelist} defeated"
+
+
 mage_pairs: typing.Tuple[typing.Tuple[Duelist, Duelist], ...] = (
     (Duelist.OCEAN_MAGE, Duelist.HIGH_MAGE_SECMETON),
     (Duelist.FOREST_MAGE, Duelist.HIGH_MAGE_ANUBISIUS),

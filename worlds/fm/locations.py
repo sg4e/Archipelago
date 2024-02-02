@@ -2,8 +2,8 @@ import typing
 
 from BaseClasses import Location, Region
 from .cards import Card, all_cards
-from .constants import Constants
-from .duelists import Duelist
+from .utils import Constants
+from .duelists import Duelist, get_duelist_defeat_location_name
 from .drop_pools import Drop
 
 
@@ -16,7 +16,7 @@ def get_location_id_for_card(card: Card) -> int:
 
 
 def get_location_name_for_duelist(duelist: Duelist) -> str:
-    return f"{duelist} defeated"
+    return get_duelist_defeat_location_name(duelist)
 
 
 def get_location_id_for_duelist(duelist: Duelist) -> int:

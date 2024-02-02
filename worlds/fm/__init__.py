@@ -1,6 +1,5 @@
 import typing
 
-from typing import TypeVar
 from itertools import chain
 from worlds.AutoWorld import World, WebWorld
 from BaseClasses import CollectionState, Region, Tutorial
@@ -9,20 +8,14 @@ from .items import item_name_to_item_id as item_id_map
 from .items import create_item as fabricate_item
 from .items import (FMItem, progressive_duelist_item_name, victory_event_name, create_victory_event,
                     create_starchip_items)
-from .constants import Constants
+from .utils import Constants, flatten
 from .locations import location_name_to_id as location_map
 from .locations import CardLocation, DuelistLocation
 from .cards import Card, all_cards
-from .options import FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecLogic
+from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecLogic,
+                      duelist_progression_map)
 from .duelists import Duelist, mage_pairs
 from .drop_pools import DuelRank, Drop
-
-
-T = TypeVar("T")
-
-
-def flatten(i: typing.Iterable[typing.Iterable[T]]) -> typing.List[T]:
-    return list(chain.from_iterable(i))
 
 
 class FMWeb(WebWorld):
@@ -50,9 +43,9 @@ class FMWorld(World):
 
     final_6_order: typing.List[Duelist]
     # each tuple is a group of duelists unlocked with a single Progressive Duelist item before Final 6
+    # duelist_unlock_order[0] is unlocked from the start
     # Final 6 unlocks are handled separately
     duelist_unlock_order: typing.List[typing.Tuple[Duelist, ...]]
-    duelists_unlocked_at_start: typing.List[Duelist]
 
     location_name_to_id = location_map
     item_name_to_id = item_id_map
@@ -66,7 +59,9 @@ class FMWorld(World):
 
     def get_available_duelists(self, state: CollectionState) -> typing.List[Duelist]:
         progressive_duelist_item_count: int = state.count(progressive_duelist_item_name, self.player)
-        duelists_available: typing.List[Duelist] = self.duelists_unlocked_at_start[:]
+        duelists_available: typing.List[Duelist] = []
+        # the first element is unlocked at the start
+        progressive_duelist_item_count += 1
         if progressive_duelist_item_count >= len(self.duelist_unlock_order):
             duelists_available.extend(flatten(self.duelist_unlock_order))
             final_6_unlocks: int = progressive_duelist_item_count - len(self.duelist_unlock_order)
@@ -103,38 +98,8 @@ class FMWorld(World):
         else:
             self.final_6_order.append(Duelist.NITEMARE)
 
-        # FM-TODO: Break out into a YAML setting?
-        self.duelists_unlocked_at_start = [Duelist.DUEL_MASTER_K, Duelist.SIMON_MURAN]
-        if (self.options.duelist_progression.value == DuelistProgression.option_campaign or
-                self.options.duelist_progression.value == DuelistProgression.option_campaign):
-            self.duelists_unlocked_at_start.extend((Duelist.TEANA, Duelist.JONO, Duelist.VILLAGER1,
-                                                    Duelist.VILLAGER2, Duelist.VILLAGER3))
-        if self.options.duelist_progression.value == DuelistProgression.option_thematic:
-            self.duelists_unlocked_at_start.append(Duelist.SETO)
-            self.duelist_unlock_order = [
-                (Duelist.TEANA, Duelist.JONO, Duelist.VILLAGER1, Duelist.VILLAGER2,
-                 Duelist.VILLAGER3, Duelist.SETO),
-                (Duelist.REX_RAPTOR, Duelist.WEEVIL_UNDERWOOD, Duelist.MAI_VALENTINE, Duelist.BANDIT_KEITH,
-                 Duelist.SHADI, Duelist.YAMI_BAKURA, Duelist.PEGASUS, Duelist.ISIS, Duelist.KAIBA),
-                (Duelist.MAGE_SOLDIER, Duelist.JONO_2ND, Duelist.TEANA_2ND, Duelist.OCEAN_MAGE,
-                 Duelist.HIGH_MAGE_SECMETON, Duelist.FOREST_MAGE, Duelist.HIGH_MAGE_ANUBISIUS, Duelist.MOUNTAIN_MAGE,
-                 Duelist.HIGH_MAGE_ATENZA, Duelist.DESERT_MAGE, Duelist.HIGH_MAGE_MARTIS, Duelist.MEADOW_MAGE,
-                 Duelist.HIGH_MAGE_KEPURA, Duelist.LABYRINTH_MAGE, Duelist.SETO_2ND)
-            ]
-        elif self.options.duelist_progression.value == DuelistProgression.option_campaign:
-            self.duelist_unlock_order = [
-                (Duelist.SETO,),
-                (Duelist.REX_RAPTOR,),
-                (Duelist.WEEVIL_UNDERWOOD,),
-                (Duelist.MAI_VALENTINE,),
-                (Duelist.BANDIT_KEITH,),
-                (Duelist.SHADI,),
-                (Duelist.YAMI_BAKURA,),
-                (Duelist.PEGASUS,),
-                (Duelist.ISIS,),
-                (Duelist.KAIBA,),
-                (Duelist.MAGE_SOLDIER, Duelist.JONO_2ND, Duelist.TEANA_2ND)
-            ]
+        self.duelist_unlock_order = list(duelist_progression_map[self.options.duelist_progression.value])
+        if self.options.duelist_progression.value == DuelistProgression.option_campaign:
             def pop_random_pair(x): return x.pop(self.random.randint(0, len(x) - 1))
             mages = list(mage_pairs)
             first_mages_unlocked: typing.List[Duelist] = []
@@ -147,15 +112,10 @@ class FMWorld(World):
             self.duelist_unlock_order.append(tuple(flatten(mages)))
         elif self.options.duelist_progression.value == DuelistProgression.option_singular:
             mages = list(chain.from_iterable(mage_pairs))
-            # These are already unlocked/disallowed
-            do_not_add = (Duelist.HEISHIN, Duelist.SIMON_MURAN, Duelist.DUEL_MASTER_K)
-            for duelist in Duelist:
-                if duelist not in do_not_add and duelist not in mages and not duelist.is_final_6:
-                    self.duelist_unlock_order.append((duelist,))
             self.random.shuffle(mages)
             for mage in mages:
                 self.duelist_unlock_order.append((mage,))
-        else:
+        elif self.options.duelist_progression.value != DuelistProgression.option_thematic:
             raise ValueError(f"Invalid DuelistProgression option: {self.options.duelist_progression.value}")
 
     def create_item(self, name: str) -> FMItem:
@@ -224,7 +184,7 @@ class FMWorld(World):
         final_6_duelist_locations[-1].address = None
         free_duel_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
-        for _ in range(len(self.duelist_unlock_order) + 1):  # I think you need +1 for entry into Final 6
+        for _ in range(len(self.duelist_unlock_order)):  # This is not an off-by-one error
             itempool.append(self.create_item(progressive_duelist_item_name))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
         itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)

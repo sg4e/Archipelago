@@ -1,7 +1,7 @@
 import typing
 
 from BaseClasses import Item, ItemClassification
-from .constants import Constants
+from .utils import Constants
 
 starchip_values: typing.Tuple[int, int, int] = (1, 5, 100)
 starchip_values_to_strings: typing.Dict[int, str] = {

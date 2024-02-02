@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from Options import Toggle, Range, Choice, PerGameCommonOptions
+from .duelists import Duelist
 
 
 class DuelistProgression(Choice):
@@ -26,6 +27,60 @@ class DuelistProgression(Choice):
     option_campaign = 1
     option_singular = 2
     default = 1
+
+
+always_unlocked_duelists = (Duelist.SIMON_MURAN, Duelist.DUEL_MASTER_K)
+
+# first tuple is the duelists unlocked at the start
+duelist_progression_map = {
+    DuelistProgression.option_thematic: (
+        always_unlocked_duelists +
+        (Duelist.TEANA, Duelist.JONO, Duelist.VILLAGER1, Duelist.VILLAGER2, Duelist.VILLAGER3, Duelist.SETO),
+        (Duelist.REX_RAPTOR, Duelist.WEEVIL_UNDERWOOD, Duelist.MAI_VALENTINE, Duelist.BANDIT_KEITH,
+            Duelist.SHADI, Duelist.YAMI_BAKURA, Duelist.PEGASUS, Duelist.ISIS, Duelist.KAIBA),
+        (Duelist.MAGE_SOLDIER, Duelist.JONO_2ND, Duelist.TEANA_2ND, Duelist.OCEAN_MAGE,
+            Duelist.HIGH_MAGE_SECMETON, Duelist.FOREST_MAGE, Duelist.HIGH_MAGE_ANUBISIUS, Duelist.MOUNTAIN_MAGE,
+            Duelist.HIGH_MAGE_ATENZA, Duelist.DESERT_MAGE, Duelist.HIGH_MAGE_MARTIS, Duelist.MEADOW_MAGE,
+            Duelist.HIGH_MAGE_KEPURA, Duelist.LABYRINTH_MAGE, Duelist.SETO_2ND)
+    ),
+    DuelistProgression.option_campaign: (
+        always_unlocked_duelists +
+        (Duelist.TEANA, Duelist.JONO, Duelist.VILLAGER1, Duelist.VILLAGER2, Duelist.VILLAGER3),
+        (Duelist.SETO,),
+        (Duelist.REX_RAPTOR,),
+        (Duelist.WEEVIL_UNDERWOOD,),
+        (Duelist.MAI_VALENTINE,),
+        (Duelist.BANDIT_KEITH,),
+        (Duelist.SHADI,),
+        (Duelist.YAMI_BAKURA,),
+        (Duelist.PEGASUS,),
+        (Duelist.ISIS,),
+        (Duelist.KAIBA,),
+        (Duelist.MAGE_SOLDIER, Duelist.JONO_2ND, Duelist.TEANA_2ND)  # + mages unlocked in random order
+    ),
+    DuelistProgression.option_singular: (
+        always_unlocked_duelists +
+        (),
+        (Duelist.TEANA,),
+        (Duelist.JONO,),
+        (Duelist.VILLAGER1,),
+        (Duelist.VILLAGER2,),
+        (Duelist.VILLAGER3,),
+        (Duelist.SETO,),
+        (Duelist.REX_RAPTOR,),
+        (Duelist.WEEVIL_UNDERWOOD,),
+        (Duelist.MAI_VALENTINE,),
+        (Duelist.BANDIT_KEITH,),
+        (Duelist.SHADI,),
+        (Duelist.YAMI_BAKURA,),
+        (Duelist.PEGASUS,),
+        (Duelist.ISIS,),
+        (Duelist.KAIBA,),
+        (Duelist.MAGE_SOLDIER,),
+        (Duelist.JONO_2ND,),
+        (Duelist.TEANA_2ND,)  # + mages unlocked in random order
+    )
+}
 
 
 class Final6Progression(Choice):
