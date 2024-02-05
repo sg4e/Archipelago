@@ -16,6 +16,7 @@ from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Se
                       ATecTrap, duelist_progression_map)
 from .duelists import Duelist, mage_pairs, map_duelists_to_ids, get_unlocked_duelists
 from .drop_pools import DuelRank, Drop
+from .client import FMClient  # This registers the client
 
 
 class FMWeb(WebWorld):
