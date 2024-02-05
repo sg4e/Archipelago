@@ -14,7 +14,7 @@ from .locations import CardLocation, DuelistLocation
 from .cards import Card, all_cards
 from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecLogic,
                       ATecTrap, duelist_progression_map)
-from .duelists import Duelist, mage_pairs
+from .duelists import Duelist, mage_pairs, map_duelists_to_ids, get_unlocked_duelists
 from .drop_pools import DuelRank, Drop
 
 
@@ -59,18 +59,7 @@ class FMWorld(World):
 
     def get_available_duelists(self, state: CollectionState) -> typing.List[Duelist]:
         progressive_duelist_item_count: int = state.count(progressive_duelist_item_name, self.player)
-        duelists_available: typing.List[Duelist] = []
-        # the first element is unlocked at the start
-        progressive_duelist_item_count += 1
-        if progressive_duelist_item_count >= len(self.duelist_unlock_order):
-            duelists_available.extend(flatten(self.duelist_unlock_order))
-            final_6_unlocks: int = progressive_duelist_item_count - len(self.duelist_unlock_order)
-            if final_6_unlocks > 0:
-                duelists_available.extend(self.final_6_order[:final_6_unlocks])
-        else:
-            for i in range(progressive_duelist_item_count):
-                duelists_available.extend(self.duelist_unlock_order[i])
-        return duelists_available
+        return get_unlocked_duelists(progressive_duelist_item_count, self.duelist_unlock_order, self.final_6_order)
 
     def is_card_location_accessible_with_duelists(self, location: CardLocation,
                                                   duelists_available: typing.List[Duelist]) -> bool:
@@ -205,3 +194,9 @@ class FMWorld(World):
         menu_region.connect(free_duel_region)
         self.multiworld.regions.append(free_duel_region)
         self.multiworld.regions.append(menu_region)
+
+    def fill_slot_data(self) -> typing.Dict[str, typing.Any]:
+        return {
+            Constants.DUELIST_UNLOCK_ORDER_KEY: map_duelists_to_ids(self.duelist_unlock_order),
+            Constants.FINAL_6_ORDER_KEY: tuple(duelist.id for duelist in self.final_6_order)
+        }

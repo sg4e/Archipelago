@@ -11,7 +11,7 @@ starchip_values_to_strings: typing.Dict[int, str] = {
 progressive_duelist_item_name: str = "Progressive Duelist"
 progressive_duelist_item_id: int = Constants.ITEM_ID_OFFSET + 0x00
 
-victory_event_id = None  # as required by the World API
+victory_event_id = Constants.VICTORY_ITEM_ID
 victory_event_name = "Egypt saved"
 
 # ids are Progressive Duelist's id, then each index in starchip_values
@@ -33,7 +33,7 @@ def create_item(name: str, player_id: int) -> FMItem:
 
 
 def create_victory_event(player_id: int) -> FMItem:
-    return FMItem(victory_event_name, ItemClassification.progression, None, player_id)
+    return FMItem(victory_event_name, ItemClassification.progression, victory_event_id, player_id)
 
 
 def create_starchip_items(player_id: int, count: int) -> typing.List[FMItem]:

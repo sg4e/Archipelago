@@ -11,8 +11,12 @@ def get_location_name_for_card(card: Card) -> str:
     return f"{card.name}"
 
 
+def get_location_id_for_card_id(card_id: int) -> int:
+    return Constants.CARD_ID_OFFSET + card_id
+
+
 def get_location_id_for_card(card: Card) -> int:
-    return Constants.CARD_ID_OFFSET + card.id
+    return get_location_id_for_card_id(card.id)
 
 
 def get_location_name_for_duelist(duelist: Duelist) -> str:

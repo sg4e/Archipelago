@@ -14,6 +14,9 @@ class Constants:
     DUELIST_ID_OFFSET: int = FM_ID_OFFSET + 0x1000
     ITEM_ID_OFFSET: int = FM_ID_OFFSET + 0x10000
     STARCHIP_ITEM_ID_OFFSET: int = ITEM_ID_OFFSET + 0x100
+    VICTORY_ITEM_ID: int = 0x4B1DDEFFFFFF
+    DUELIST_UNLOCK_ORDER_KEY: str = "d"
+    FINAL_6_ORDER_KEY: str = "f"
 
 
 T = TypeVar("T")
