@@ -35,7 +35,8 @@ class FMWeb(WebWorld):
 
 
 class FMWorld(World):
-    """Yu-Gi-Oh! Forbidden Memories is a game."""
+    """Yu-Gi-Oh! Forbidden Memories is a PlayStation RPG with card-battling mechanics. Assume the role of the Prince of
+    Egypt who transcends time in order to thwart a cataclysmic evil."""
     game: str = Constants.GAME_NAME
     options_dataclass = FMOptions
     options: FMOptions
