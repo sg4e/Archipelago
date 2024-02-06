@@ -39,21 +39,23 @@ class FMClient(BizHawkClient):
         # cause files to move around inside the binary so offsets for strings may not be reliable. Some mods also update
         # the game's checksum so that they run on real consoles.
         #
-        # I checked 3 mods (an old patch of 5 card, and checksum-patched version of 15 and 15+15 starchip mods) along
-        # with the vanilla game, and found that the KONAMI string was always present at 0x95D6.
-        #
-        # I also found that the string SLUS_014.11 was located somewhere close to 0xCAF5, moving around slightly in
-        # different mods. This is the unique filename for the NTSC version of Forbidden Memories. Most mods base
-        # themselves on the NTSC release, and the speedrunning community uses it as well since it's faster than PAL and
-        # JP, although I'd like to validate the others releases if there's demand to play them.
+        # I've found that the most reliable way is to search the RAM instead of the ROM. When the BIOS boots up, as soon
+        # as the PlayStation "P" logo appears, a certain section of memory is initialized with the game's NTSC
+        # identifier: BASLUS-01411-YUGIOH. This stays in memory at least through the game's main menu (as deep as I
+        # checked) and probably for as long as the game is running. Most mods base themselves on the NTSC release, and
+        # the speedrunning community uses it as well since it's faster than PAL and JP, although I'd like to validate
+        # the others releases if there's demand to play them.
+        fm_identifier_ram_address: int = 0x10384
 
-        konami_string_offset: typing.Final[int] = 0x95D6
-        slus_string_neighborhood: typing.Final[int] = 0xCAF5
-        slus_string: typing.Final[str] = "SLUS_014.11"
-
+        # = BASLUS-01411-YUGIOH in ASCII
+        bytes_expected: bytes = bytes.fromhex("4241534C55532D30313431312D595547494F4800")
         try:
-            pass
-        except:
+            bytes_actual: bytes = (await bizhawk.read(ctx.bizhawk_ctx, [(
+                fm_identifier_ram_address, len(bytes_expected), MAIN_RAM
+            )]))[0]
+            if bytes_actual != bytes_expected:
+                return False
+        except Exception:
             return False
 
         ctx.game = self.game
