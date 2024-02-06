@@ -29,8 +29,32 @@ class FMClient(BizHawkClient):
         self.local_checked_locations = set()
 
     async def validate_rom(self, ctx: "BizHawkClientContext") -> bool:
-        # Not sure what can be done to validate the ROM
-        # We want to allow card-mod variants, but a lot of those patches don't patch the checksum
+        # Forbidden Memories has a very active romhacking community. Although not all mods will be compatible with AP
+        # since AP assumes specific card distributions (card drop tables), I see no reason to limit players to only a
+        # small subset of mods when all the revelant memory addresses for the AP interface don't change. We could even
+        # support modded drop tables in the future.
+        #
+        # I searched for a means to validate the ROM in a mod-agnostic way. PSX discs contain filesystems; some mods
+        # extract the files, modify the relevant parts, then rebuild the ISO (FM card mod does this process). This can
+        # cause files to move around inside the binary so offsets for strings may not be reliable. Some mods also update
+        # the game's checksum so that they run on real consoles.
+        #
+        # I checked 3 mods (an old patch of 5 card, and checksum-patched version of 15 and 15+15 starchip mods) along
+        # with the vanilla game, and found that the KONAMI string was always present at 0x95D6.
+        #
+        # I also found that the string SLUS_014.11 was located somewhere close to 0xCAF5, moving around slightly in
+        # different mods. This is the unique filename for the NTSC version of Forbidden Memories. Most mods base
+        # themselves on the NTSC release, and the speedrunning community uses it as well since it's faster than PAL and
+        # JP, although I'd like to validate the others releases if there's demand to play them.
+
+        konami_string_offset: typing.Final[int] = 0x95D6
+        slus_string_neighborhood: typing.Final[int] = 0xCAF5
+        slus_string: typing.Final[str] = "SLUS_014.11"
+
+        try:
+            pass
+        except:
+            return False
 
         ctx.game = self.game
         ctx.items_handling = 0b111
