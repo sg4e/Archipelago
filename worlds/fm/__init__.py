@@ -24,7 +24,7 @@ class FMWeb(WebWorld):
 
     setup_en = Tutorial(
         "Multiworld Setup Guide",
-        f"A guide to setting up {Constants.GAME_NAME} connected to an Archipelago Multiworld.",
+        f"A guide to playing {Constants.GAME_NAME} with Archipelago.",
         "English",
         "setup_en.md",
         "setup/en",

@@ -153,10 +153,8 @@ class ATecLogic(Choice):
 
     @classmethod
     def get_option_name(cls, value) -> str:
-        if cls.auto_display_name:
-            return cls.name_lookup[value].replace("Atec", "ATec")
-        else:
-            return cls.name_lookup[value]
+        formatted: str = super().get_option_name(value)
+        return formatted.replace("Atec", "ATec")
 
 
 class ATecTrap(Choice):
