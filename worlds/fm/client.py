@@ -122,7 +122,9 @@ class FMClient(BizHawkClient):
                 chest_memory: bytes = (await bizhawk.read(
                     ctx.bizhawk_ctx, [(CARDS_IN_CHESTS_OFFSET, 722, MAIN_RAM)]
                 ))[0]
-                owned_ids: set[int] = set([get_location_id_for_card_id(i+1) for i in range(722) if chest_memory[i] != 0])
+                owned_ids: set[int] = set(
+                    [get_location_id_for_card_id(i+1) for i in range(722) if chest_memory[i] != 0]
+                )
                 new_local_checked_locations |= owned_ids
 
                 if new_local_checked_locations != self.local_checked_locations:
