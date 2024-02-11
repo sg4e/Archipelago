@@ -85,7 +85,7 @@ class FMClient(BizHawkClient):
                 if self.duelist_unlock_order is not None and self.final_6_order is not None:
                     # Unlock duelists for Progressive Duelist item count
                     progressive_duelist_item_count: int = sum(
-                        1 for id in ctx.items_received if id == progressive_duelist_item_id
+                        1 for item in ctx.items_received if item.item == progressive_duelist_item_id
                     )
                     unlocked_duelists: typing.List[Duelist] = get_unlocked_duelists(
                         progressive_duelist_item_count,
