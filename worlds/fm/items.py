@@ -1,9 +1,11 @@
 import typing
+from random import Random  # for typing only; instance obtained from multiworld
 
 from BaseClasses import Item, ItemClassification
 from .utils import Constants
 
-starchip_values: typing.Tuple[int, int, int] = (1, 5, 10)
+starchip_values: typing.Tuple[int, int, int] = (1, 5, 25)
+starchip_distribution_weights: typing.Tuple[float, float, float] = (0.88, 0.10, 0.02)
 starchip_values_to_strings: typing.Dict[int, str] = {
     value: f"Starchip{'' if value == 1 else f's x{value}'}"
     for value in starchip_values
@@ -40,9 +42,6 @@ def create_victory_event(player_id: int) -> FMItem:
     return FMItem(victory_event_name, ItemClassification.progression, victory_event_id, player_id)
 
 
-def create_starchip_items(player_id: int, count: int) -> typing.List[FMItem]:
-    items: typing.List[FMItem] = []
-    # FM-TODO: added different starchip values
-    for _ in range(count):
-        items.append(create_item(starchip_values_to_strings[1], player_id))
-    return items
+def create_starchip_items(player_id: int, count: int, rand: Random) -> typing.List[FMItem]:
+    dist: typing.List[int] = rand.choices(starchip_values, weights=starchip_distribution_weights, k=count)
+    return [create_item(starchip_values_to_strings[e], player_id) for e in dist]

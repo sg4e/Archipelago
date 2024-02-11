@@ -188,7 +188,7 @@ class FMWorld(World):
             itempool.append(self.create_item(progressive_duelist_item_name))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
         itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)
-                                              - len(final_6_duelist_locations)))
+                                              - len(final_6_duelist_locations), self.random))
         self.multiworld.itempool.extend(itempool)
 
         menu_region.connect(free_duel_region)
