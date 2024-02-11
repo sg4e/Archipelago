@@ -16,6 +16,11 @@ CARDS_IN_CHESTS_OFFSET: typing.Final[int] = 0x1D0250
 MAIN_RAM: typing.Final[str] = "MainRAM"
 
 
+def get_wins_and_losses_from_bytes(b: bytes) -> typing.Tuple[int, int]:
+    """Wins is the first value; losses is the second."""
+    return int.from_bytes(b[:2], "little"), int.from_bytes(b[2:], "little")
+
+
 class FMClient(BizHawkClient):
     game: str = Constants.GAME_NAME
     system: str = "PSX"
@@ -106,14 +111,14 @@ class FMClient(BizHawkClient):
                         first_bit_field.to_bytes(4, "little") + second_bit_field.to_bytes(1),
                         MAIN_RAM
                     )])
-                # Read number of wins over each duelist for "Duelist defeated" locations
+                # Read number of wins and losses over each duelist for "Duelist defeated" locations
                 all_duelists: typing.List[Duelist] = [d for d in Duelist]
                 read_list: typing.List[typing.Tuple[int, int, str]] = [
                     (d.wins_address, 4, MAIN_RAM) for d in all_duelists
                 ]
                 wins_bytes: typing.List[bytes] = await bizhawk.read(ctx.bizhawk_ctx, read_list)
                 duelists_to_wins: typing.Dict[Duelist, int] = {
-                    d: int.from_bytes(w, "little") for d, w in zip(all_duelists, wins_bytes)
+                    d: get_wins_and_losses_from_bytes(w)[0] for d, w in zip(all_duelists, wins_bytes)
                 }
                 new_local_checked_locations: typing.Set[int] = set([
                     get_location_id_for_duelist(key) for key, value in duelists_to_wins.items() if value != 0

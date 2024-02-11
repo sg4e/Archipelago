@@ -22,10 +22,10 @@ class Duelist(Enum):
     # these value don't seem used anywhere in the game, though I didn't attach any watches to these addresses to find
     # out).
     #
-    # Each duelist's number of wins is stored in a 4-byte integer starting at 0x1D0720 for Simon Muran and continuing
-    # left to right, top to bottom, in the Free Duel screen. The number of wins displays properly up to 999, after which
-    # only the tens and ones digits are displayed. At very large values (I tried 0xFFFF), nothing is displayed at all
-    # for the number.
+    # Each duelist's number of wins and losses are stored in 2 2-byte integer (losses first, then wins) starting at
+    # 0x1D0720 for Simon Muran and continuing left to right, top to bottom, in the Free Duel screen. The number of wins
+    # displays properly up to 999, after which only the tens and ones digits are displayed. At very large values (I
+    # tried 0xFFFF), nothing is displayed at all for the number.
     SIMON_MURAN = (1, 5, "Simon Muran", 1 << 6)
     TEANA = (2, 5, "Teana", 1 << 5)
     JONO = (3, 5, "Jono", 1 << 4)
