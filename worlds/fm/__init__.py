@@ -189,6 +189,9 @@ class FMWorld(World):
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
         itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)
                                               - len(final_6_duelist_locations), self.random))
+        # It's not clear to me why the pool is lacking 5 items with this option, but whatever
+        if self.options.final6_progression.value == Final6Progression.option_shuffled:
+            itempool.extend(create_starchip_items(self.player, len(final_6_duelist_locations) - 1, self.random))
         self.multiworld.itempool.extend(itempool)
 
         menu_region.connect(free_duel_region)
