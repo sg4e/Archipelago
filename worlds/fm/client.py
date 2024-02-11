@@ -144,5 +144,6 @@ class FMClient(BizHawkClient):
                         "cmd": "StatusUpdate",
                         "status": ClientStatus.CLIENT_GOAL
                     }])
+                    ctx.finished_game = True
             except bizhawk.RequestFailedError:
                 pass
