@@ -19,6 +19,7 @@ item_id_to_item_name: typing.Dict[int, str] = {}
 item_id_to_item_name[progressive_duelist_item_id] = progressive_duelist_item_name
 for i in range(len(starchip_values)):
     item_id_to_item_name[Constants.STARCHIP_ITEM_ID_OFFSET + i] = starchip_values_to_strings[starchip_values[i]]
+item_id_to_item_name[victory_event_id] = victory_event_name
 
 item_name_to_item_id: typing.Dict[str, int] = {value: key for key, value in item_id_to_item_name.items()}
 

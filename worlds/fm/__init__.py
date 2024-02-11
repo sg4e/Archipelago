@@ -182,8 +182,6 @@ class FMWorld(World):
         else:
             raise ValueError(f"Invalid Final6Progression option: {self.options.final6_progression.value}")
         final_6_duelist_locations[-1].place_locked_item(create_victory_event(self.player))
-        # Event location and item both need to be "None" or the Generator complains
-        final_6_duelist_locations[-1].address = None
         free_duel_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
         for _ in range(len(self.duelist_unlock_order)):  # This is not an off-by-one error
