@@ -76,6 +76,12 @@ class FMClient(BizHawkClient):
         # Cards in chest DO NOT include what's in the deck
         # Chest memory is updated after the player leaves the Build Deck screen
 
+        if not ctx.finished_game and any(item.item == Constants.VICTORY_ITEM_ID for item in ctx.items_received):
+            await ctx.send_msgs([{
+                "cmd": "StatusUpdate",
+                "status": ClientStatus.CLIENT_GOAL
+            }])
+            ctx.finished_game = True
         # Pokemon Emerald checks the slot data here
         # Can this be evaluated only once?
         if ctx.slot_data is not None:
@@ -139,11 +145,5 @@ class FMClient(BizHawkClient):
                             "cmd": "LocationChecks",
                             "locations": list(new_local_checked_locations)
                         }])
-                if not ctx.finished_game and any(item.item == Constants.VICTORY_ITEM_ID for item in ctx.items_received):
-                    await ctx.send_msgs([{
-                        "cmd": "StatusUpdate",
-                        "status": ClientStatus.CLIENT_GOAL
-                    }])
-                    ctx.finished_game = True
             except bizhawk.RequestFailedError:
                 pass
