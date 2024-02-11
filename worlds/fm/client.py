@@ -5,8 +5,9 @@ from NetUtils import ClientStatus
 import worlds._bizhawk as bizhawk
 from worlds._bizhawk.client import BizHawkClient
 from .utils import Constants
-from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, get_unlocked_duelists, UNLOCK_OFFSET)
-from .items import progressive_duelist_item_id
+from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, get_unlocked_duelists, UNLOCK_OFFSET,
+                       LATEGAME_DUELIST_UNLOCK_OFFSET)
+from .items import progressive_duelist_item_id, starchip_item_ids_to_starchip_values
 from .locations import get_location_id_for_duelist, get_location_id_for_card_id
 
 if TYPE_CHECKING:
@@ -14,6 +15,8 @@ if TYPE_CHECKING:
 
 CARDS_IN_CHESTS_OFFSET: typing.Final[int] = 0x1D0250
 MAIN_RAM: typing.Final[str] = "MainRAM"
+STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET: typing.Final[int] = LATEGAME_DUELIST_UNLOCK_OFFSET + 0x04
+STARCHIP_RAM_OFFSET: typing.Final[int] = 0x1D07E0
 
 
 def get_wins_and_losses_from_bytes(b: bytes) -> typing.Tuple[int, int]:
@@ -145,5 +148,33 @@ class FMClient(BizHawkClient):
                             "cmd": "LocationChecks",
                             "locations": list(new_local_checked_locations)
                         }])
+
+                # Starchip handling
+                starchips_awarded_bytes: bytes = (await bizhawk.read(
+                    ctx.bizhawk_ctx, [(STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET, 4, MAIN_RAM)]
+                ))[0]
+                # In the spirit of the PlayStation, we encode the integer in little-endian
+                starchips_awarded: int = int.from_bytes(starchips_awarded_bytes, "little")
+                starchips_on_server: int = sum(
+                    starchip_item_ids_to_starchip_values[item.item] for item in ctx.items_received
+                    if item.item in starchip_item_ids_to_starchip_values
+                )
+                if starchips_on_server > starchips_awarded:
+                    amount_to_award: int = starchips_on_server - starchips_awarded
+                    starchip_ram_bytes: bytes = (
+                        await bizhawk.read(ctx.bizhawk_ctx, [(STARCHIP_RAM_OFFSET, 4, MAIN_RAM)])
+                    )[0]
+                    starchips_in_ram: int = int.from_bytes(starchip_ram_bytes, "little")
+                    new_starchip_count: int = starchips_in_ram + amount_to_award
+                    new_starchip_bytes: bytes = new_starchip_count.to_bytes(4, "little")
+                    new_total_awarded: bytes = starchips_on_server.to_bytes(4, "little")
+                    # Use guarded write to avoid the race condition where the player spends their starchips
+                    # or acquires more starchips before the adjusted amount is awarded
+                    await bizhawk.guarded_write(ctx.bizhawk_ctx, [
+                        (STARCHIP_RAM_OFFSET, new_starchip_bytes, MAIN_RAM),  # new value
+                        (STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET, new_total_awarded, MAIN_RAM)
+                    ], [
+                        (STARCHIP_RAM_OFFSET, starchip_ram_bytes, MAIN_RAM)  # guarded value
+                    ])
             except bizhawk.RequestFailedError:
                 pass

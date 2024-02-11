@@ -3,7 +3,7 @@ import typing
 from BaseClasses import Item, ItemClassification
 from .utils import Constants
 
-starchip_values: typing.Tuple[int, int, int] = (1, 5, 100)
+starchip_values: typing.Tuple[int, int, int] = (1, 5, 10)
 starchip_values_to_strings: typing.Dict[int, str] = {
     value: f"Starchip{'' if value == 1 else f's x{value}'}"
     for value in starchip_values
@@ -17,8 +17,11 @@ victory_event_name = "Egypt saved"
 # ids are Progressive Duelist's id, then each index in starchip_values
 item_id_to_item_name: typing.Dict[int, str] = {}
 item_id_to_item_name[progressive_duelist_item_id] = progressive_duelist_item_name
+starchip_item_ids_to_starchip_values: typing.Dict[int, int] = {}
 for i in range(len(starchip_values)):
-    item_id_to_item_name[Constants.STARCHIP_ITEM_ID_OFFSET + i] = starchip_values_to_strings[starchip_values[i]]
+    id: int = Constants.STARCHIP_ITEM_ID_OFFSET + i
+    item_id_to_item_name[id] = starchip_values_to_strings[starchip_values[i]]
+    starchip_item_ids_to_starchip_values[id] = starchip_values[i]
 item_id_to_item_name[victory_event_id] = victory_event_name
 
 item_name_to_item_id: typing.Dict[str, int] = {value: key for key, value in item_id_to_item_name.items()}
