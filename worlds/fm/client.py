@@ -7,7 +7,7 @@ from worlds._bizhawk.client import BizHawkClient
 from .utils import Constants
 from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, get_unlocked_duelists, UNLOCK_OFFSET,
                        LATEGAME_DUELIST_UNLOCK_OFFSET)
-from .items import progressive_duelist_item_id, starchip_item_ids_to_starchip_values
+from .items import starchip_item_ids_to_starchip_values
 from .locations import get_location_id_for_duelist, get_location_id_for_card_id
 
 if TYPE_CHECKING:
@@ -99,7 +99,7 @@ class FMClient(BizHawkClient):
                 if self.duelist_unlock_order is not None and self.final_6_order is not None:
                     # Unlock duelists for Progressive Duelist item count
                     progressive_duelist_item_count: int = sum(
-                        1 for item in ctx.items_received if item.item == progressive_duelist_item_id
+                        1 for item in ctx.items_received if item.item == Constants.PROGRESSIVE_DUELIST_ITEM_ID
                     )
                     unlocked_duelists: typing.List[Duelist] = get_unlocked_duelists(
                         progressive_duelist_item_count,

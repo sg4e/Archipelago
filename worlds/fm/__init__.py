@@ -6,8 +6,7 @@ from BaseClasses import CollectionState, Region, Tutorial
 from worlds.generic.Rules import set_rule
 from .items import item_name_to_item_id as item_id_map
 from .items import create_item as fabricate_item
-from .items import (FMItem, progressive_duelist_item_name, victory_event_name, create_victory_event,
-                    create_starchip_items)
+from .items import FMItem, create_victory_event, create_starchip_items
 from .utils import Constants, flatten
 from .locations import location_name_to_id as location_map
 from .locations import CardLocation, DuelistLocation
@@ -60,7 +59,7 @@ class FMWorld(World):
         return remove_ultra_rares
 
     def get_available_duelists(self, state: CollectionState) -> typing.List[Duelist]:
-        progressive_duelist_item_count: int = state.count(progressive_duelist_item_name, self.player)
+        progressive_duelist_item_count: int = state.count(Constants.PROGRESSIVE_DUELIST_ITEM_NAME, self.player)
         return get_unlocked_duelists(progressive_duelist_item_count, self.duelist_unlock_order, self.final_6_order)
 
     def is_card_location_accessible_with_duelists(self, location: CardLocation,
@@ -170,22 +169,26 @@ class FMWorld(World):
                 else:
                     free_duel_region.locations.append(duelist_location)
         final_6_duelist_locations.sort(key=lambda x: self.final_6_order.index(x.duelist))
-        self.multiworld.completion_condition[self.player] = lambda state: state.has(victory_event_name, self.player)
+        self.multiworld.completion_condition[self.player] = lambda state: state.has(
+            Constants.VICTORY_ITEM_NAME, self.player
+        )
 
         itempool: typing.List[FMItem] = []
         if self.options.final6_progression.value == Final6Progression.option_fixed:
             for i in range(len(final_6_duelist_locations) - 1):
-                final_6_duelist_locations[i].place_locked_item(self.create_item(progressive_duelist_item_name))
+                final_6_duelist_locations[i].place_locked_item(
+                    self.create_item(Constants.PROGRESSIVE_DUELIST_ITEM_NAME)
+                )
         elif self.options.final6_progression.value == Final6Progression.option_shuffled:
             for _ in range(len(final_6_duelist_locations) - 1):
-                itempool.append(self.create_item(progressive_duelist_item_name))
+                itempool.append(self.create_item(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         else:
             raise ValueError(f"Invalid Final6Progression option: {self.options.final6_progression.value}")
         final_6_duelist_locations[-1].place_locked_item(create_victory_event(self.player))
         free_duel_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
         for _ in range(len(self.duelist_unlock_order)):  # This is not an off-by-one error
-            itempool.append(self.create_item(progressive_duelist_item_name))
+            itempool.append(self.create_item(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
         itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)
                                               - len(final_6_duelist_locations), self.random))
