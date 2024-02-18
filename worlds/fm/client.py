@@ -5,10 +5,11 @@ from NetUtils import ClientStatus
 import worlds._bizhawk as bizhawk
 from worlds._bizhawk.client import BizHawkClient
 from .utils import Constants
-from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, get_unlocked_duelists, UNLOCK_OFFSET,
+from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, UNLOCK_OFFSET,
                        LATEGAME_DUELIST_UNLOCK_OFFSET)
 from .items import starchip_item_ids_to_starchip_values
 from .locations import get_location_id_for_duelist, get_location_id_for_card_id
+from .logic import get_unlocked_duelists
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext

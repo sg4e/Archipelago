@@ -3,7 +3,7 @@ import typing
 from itertools import chain
 from typing import Optional
 from enum import Enum
-from .drop_pools import card_id_to_pools
+from .drop_pools import card_id_to_pools, Drop
 
 
 class GuardianStar(Enum):
@@ -68,7 +68,8 @@ class Card:
     type: Type
     attribute: Optional[Attribute]
     password: Optional[str]
-    drop_pool: typing.List  # [Drop], populated later
+    drop_pool: typing.List[Drop]
+    accessible_drops: typing.List[Drop]  # Initialized by the logic
 
     def __init__(self, _id: int, level: int, attack: int, defense: int, starchips: int, name: str,
                  first_guardian_star: Optional[GuardianStar], second_guardian_star: Optional[GuardianStar],
@@ -89,6 +90,10 @@ class Card:
             self.drop_pool = list(chain.from_iterable(card_id_to_pools[self.id].values()))
         else:
             self.drop_pool = []
+        self.accessible_drops = []
+
+    def attach_accessible_drops(self, drops: typing.List[Drop]):
+        self.accessible_drops.extend(drops)
 
 
 all_cards: typing.Tuple[Card, ...] = (

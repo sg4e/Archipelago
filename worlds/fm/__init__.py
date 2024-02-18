@@ -10,12 +10,13 @@ from .items import FMItem, create_victory_event, create_starchip_items
 from .utils import Constants, flatten
 from .locations import location_name_to_id as location_map
 from .locations import CardLocation, DuelistLocation
-from .cards import Card, all_cards
-from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecLogic,
-                      ATecTrap, duelist_progression_map)
-from .duelists import Duelist, mage_pairs, map_duelists_to_ids, get_unlocked_duelists
+from .cards import Card
+from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecTrap,
+                      duelist_progression_map)
+from .duelists import Duelist, mage_pairs, map_duelists_to_ids
 from .drop_pools import DuelRank, Drop
 from .client import FMClient  # This registers the client
+from .logic import get_obtainable_cards, get_unlocked_duelists
 
 
 class FMWeb(WebWorld):
@@ -50,13 +51,6 @@ class FMWorld(World):
 
     location_name_to_id = location_map
     item_name_to_id = item_id_map
-
-    def determine_accessible_drops(self, card: Card, allowed_atecs: typing.List[Duelist]) -> typing.List[Drop]:
-        remove_atecs: typing.List[Drop] = [drop for drop in card.drop_pool if drop.duel_rank is not DuelRank.SATEC
-                                           or drop.duelist in allowed_atecs]
-        remove_ultra_rares: typing.List[Drop] = [drop for drop in remove_atecs
-                                                 if drop.probability > self.options.drop_rate_logic.value]
-        return remove_ultra_rares
 
     def get_available_duelists(self, state: CollectionState) -> typing.List[Duelist]:
         progressive_duelist_item_count: int = state.count(Constants.PROGRESSIVE_DUELIST_ITEM_NAME, self.player)
@@ -123,37 +117,18 @@ class FMWorld(World):
         # All duelists are accessible from the menu, so it's our only region
         free_duel_region = Region("Free Duel", self.player, self.multiworld)
 
-        # These cards are not obtainable by any means besides hacking
-        unobtainable_ids: typing.Tuple[int, ...] = (
-            7, 17, 18, 28, 51, 52, 56, 57, 60, 62, 63, 67, 235, 252, 284, 288, 299, 369, 428, 429, 499, 541, 554,
-            555, 562, 603, 628, 640, 709, 711, 717, 721, 722
-        )
-        card_map = {card.id: card for card in all_cards}
-        reachable_cards: typing.List[Card] = [card for card in all_cards if card.id not in unobtainable_ids]
-        # FM-TODO: fusion-only and ritual-only card logic
-        card_locations: typing.List[CardLocation] = []
-        for card in reachable_cards:
-            if card.drop_pool:  # It's in some drop pool
-                card_locations.append(CardLocation(free_duel_region, self.player, card))
-
         # If obtaining a card is outside of the player's settings, set it to excluded
-        logical_atec_duelists: typing.List[Duelist] = []
-        if self.options.atec_logic.value == ATecLogic.option_all:
-            logical_atec_duelists.extend([duelist for duelist in Duelist if duelist is not Duelist.HEISHIN])
-        else:
-            if self.options.atec_logic.value >= ATecLogic.option_pegasus_only:
-                logical_atec_duelists.append(Duelist.PEGASUS)
-            if self.options.atec_logic.value >= ATecLogic.option_hundo_atecs:
-                logical_atec_duelists.extend((
-                    Duelist.KAIBA, Duelist.MAGE_SOLDIER, Duelist.MEADOW_MAGE, Duelist.NITEMARE
-                ))
-        for location in card_locations:
-            in_logic: typing.List[Drop] = self.determine_accessible_drops(location.card, logical_atec_duelists)
-            location.attach_drops(in_logic)
-            if not location.accessible_drops:
-                location.exclude()
-                location.attach_drops(card_map[location.card.id].drop_pool)
-            set_rule(location, lambda state, card=location: self.is_card_location_accessible(card, state))
+        card_locations: typing.List[CardLocation] = []
+        obtainable_cards: typing.List[Card] = get_obtainable_cards(self.options)
+        for card in obtainable_cards:
+            loc = CardLocation(free_duel_region, self.player, card)
+            if not card.accessible_drops:
+                loc.exclude()
+                # Tracker doesn't care about these. The logic is irrevelant; they are exlcuded from the pool
+                # and guaranteed to be worthless
+                card.attach_accessible_drops(card.drop_pool)
+            set_rule(loc, lambda state, card_location=loc: self.is_card_location_accessible(card_location, state))
+            card_locations.append(loc)
         free_duel_region.locations.extend(card_locations)
 
         # Add duelist locations
@@ -204,5 +179,6 @@ class FMWorld(World):
     def fill_slot_data(self) -> typing.Dict[str, typing.Any]:
         return {
             Constants.DUELIST_UNLOCK_ORDER_KEY: map_duelists_to_ids(self.duelist_unlock_order),
-            Constants.FINAL_6_ORDER_KEY: tuple(duelist.id for duelist in self.final_6_order)
+            Constants.FINAL_6_ORDER_KEY: tuple(duelist.id for duelist in self.final_6_order),
+            Constants.GAME_OPTIONS_KEY: self.options.serialize()
         }

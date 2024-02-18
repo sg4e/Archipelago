@@ -42,16 +42,14 @@ class FMLocation(Location):
 class CardLocation(FMLocation):
     """A check whenever a card is added to the library."""
     card: Card
-    accessible_drops: typing.List[Drop]
 
     def __init__(self, region: Region, player: int, card: Card):
         super().__init__(region, player, get_location_name_for_card(card), get_location_id_for_card(card))
         self.card = card
-        self.accessible_drops = []
 
-    def attach_drops(self, drops: typing.List[Drop]):
-        """Attaches all in-logic and in-settings drop probabilities to this location."""
-        self.accessible_drops.extend(drops)
+    @property
+    def accessible_drops(self) -> typing.List[Drop]:
+        return self.card.accessible_drops
 
 
 class DuelistLocation(FMLocation):

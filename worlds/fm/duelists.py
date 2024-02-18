@@ -1,7 +1,6 @@
 import typing
 
 from enum import Enum
-from .utils import flatten
 
 
 NUMBER_OF_WINS_OFFSET: typing.Final[int] = 0x1D0720
@@ -101,25 +100,6 @@ def map_ids_to_duelists(
 ) -> typing.Tuple[typing.Tuple[Duelist, ...], ...]:
     """Takes tuples of ids from the slot data and converts them back to Duelist objects."""
     return tuple(tuple(ids_to_duelists[id] for id in t) for t in ids)
-
-
-def get_unlocked_duelists(
-        progressive_duelist_item_count: int,
-        duelist_unlock_order: typing.Sequence[typing.Tuple[Duelist, ...]],
-        final_6_order: typing.Sequence[Duelist]
-) -> typing.List[Duelist]:
-    duelists_available: typing.List[Duelist] = []
-    # the first element is unlocked at the start
-    progressive_duelist_item_count += 1
-    if progressive_duelist_item_count >= len(duelist_unlock_order):
-        duelists_available.extend(flatten(duelist_unlock_order))
-        final_6_unlocks: int = progressive_duelist_item_count - len(duelist_unlock_order)
-        if final_6_unlocks > 0:
-            duelists_available.extend(final_6_order[:final_6_unlocks])
-    else:
-        for i in range(progressive_duelist_item_count):
-            duelists_available.extend(duelist_unlock_order[i])
-    return duelists_available
 
 
 mage_pairs: typing.Tuple[typing.Tuple[Duelist, Duelist], ...] = (

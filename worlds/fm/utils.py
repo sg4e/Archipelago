@@ -18,6 +18,7 @@ class Constants:
     VICTORY_ITEM_NAME: str = "Egypt saved"
     DUELIST_UNLOCK_ORDER_KEY: str = "d"
     FINAL_6_ORDER_KEY: str = "f"
+    GAME_OPTIONS_KEY: str = "o"
     PROGRESSIVE_DUELIST_ITEM_NAME: str = "Progressive Duelist"
     PROGRESSIVE_DUELIST_ITEM_ID: int = ITEM_ID_OFFSET + 0x00
 

@@ -1,3 +1,6 @@
+import dataclasses
+import typing
+
 from dataclasses import dataclass
 from Options import Range, Choice, PerGameCommonOptions
 from .duelists import Duelist
@@ -181,3 +184,6 @@ class FMOptions(PerGameCommonOptions):
     atec_logic: ATecLogic
     atec_trap: ATecTrap
     drop_rate_logic: DropRateLogic
+
+    def serialize(self) -> typing.Dict[str, int]:
+        return {field.name: getattr(self, field.name).value for field in dataclasses.fields(self)}
