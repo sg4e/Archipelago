@@ -3,8 +3,13 @@ import typing
 from .cards import all_cards, Card
 from .duelists import Duelist
 from .drop_pools import Drop, DuelRank
-from .options import FMOptions, ATecLogic
-from .utils import flatten
+from .utils import Constants, flatten
+
+# I tried this way but WebHost.py thew a NameError and refuse to load the WebWorld
+# Why would it care about typing?
+
+# if typing.TYPE_CHECKING:
+#     from .options import FMOptions
 
 
 class ValueProxy:
@@ -27,7 +32,8 @@ class OptionsProxy:
 def determine_accessible_drops(
         card: Card,
         allowed_atecs: typing.List[Duelist],
-        options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Drop]:
+        # options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Drop]:
+        options: typing.Any) -> typing.List[Drop]:
     remove_atecs: typing.List[Drop] = [drop for drop in card.drop_pool if drop.duel_rank is not DuelRank.SATEC
                                        or drop.duelist in allowed_atecs]
     remove_ultra_rares: typing.List[Drop] = [drop for drop in remove_atecs
@@ -35,7 +41,7 @@ def determine_accessible_drops(
     return remove_ultra_rares
 
 
-def get_obtainable_cards(options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Card]:
+def get_obtainable_cards(options: typing.Any) -> typing.List[Card]:
     # These cards are not obtainable by any means besides hacking
     unobtainable_ids: typing.Tuple[int, ...] = (
         7, 17, 18, 28, 51, 52, 56, 57, 60, 62, 63, 67, 235, 252, 284, 288, 299, 369, 428, 429, 499, 541, 554,
@@ -44,12 +50,12 @@ def get_obtainable_cards(options: typing.Union[FMOptions, OptionsProxy]) -> typi
     obtainable_cards: typing.List[Card] = [card for card in all_cards if card.id not in unobtainable_ids]
 
     logical_atec_duelists: typing.List[Duelist] = []
-    if options.atec_logic.value == ATecLogic.option_all:
+    if options.atec_logic.value == Constants.ATecLogicOptionValues.all:
         logical_atec_duelists.extend([duelist for duelist in Duelist if duelist is not Duelist.HEISHIN])
     else:
-        if options.atec_logic.value >= ATecLogic.option_pegasus_only:
+        if options.atec_logic.value >= Constants.ATecLogicOptionValues.pegasus_only:
             logical_atec_duelists.append(Duelist.PEGASUS)
-        if options.atec_logic.value >= ATecLogic.option_hundo_atecs:
+        if options.atec_logic.value >= Constants.ATecLogicOptionValues.hundo_atecs:
             logical_atec_duelists.extend((
                 Duelist.KAIBA, Duelist.MAGE_SOLDIER, Duelist.MEADOW_MAGE, Duelist.NITEMARE
             ))

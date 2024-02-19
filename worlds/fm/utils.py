@@ -22,6 +22,13 @@ class Constants:
     PROGRESSIVE_DUELIST_ITEM_NAME: str = "Progressive Duelist"
     PROGRESSIVE_DUELIST_ITEM_ID: int = ITEM_ID_OFFSET + 0x00
 
+    @dataclass
+    class ATecLogicOptionValues:
+        off: int = 0
+        pegasus_only: int = 1
+        hundo_atecs: int = 2
+        all: int = 3
+
 
 T = TypeVar("T")
 

@@ -4,6 +4,7 @@ import typing
 from dataclasses import dataclass
 from Options import Range, Choice, PerGameCommonOptions
 from .duelists import Duelist
+from .utils import Constants
 
 
 class DuelistProgression(Choice):
@@ -148,11 +149,11 @@ class ATecLogic(Choice):
     ATecs" set to "On".
     """
     display_name = "ATec Logic"
-    option_off = 0
-    option_pegasus_only = 1
-    option_hundo_atecs = 2
-    option_all = 3
-    default = 2
+    option_off = Constants.ATecLogicOptionValues.off
+    option_pegasus_only = Constants.ATecLogicOptionValues.pegasus_only
+    option_hundo_atecs = Constants.ATecLogicOptionValues.hundo_atecs
+    option_all = Constants.ATecLogicOptionValues.all
+    default = option_hundo_atecs
 
     @classmethod
     def get_option_name(cls, value) -> str:
