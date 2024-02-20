@@ -24,6 +24,9 @@ class Drop:
         self.probability = probability
         self.duel_rank = pool
 
+    def __str__(self) -> str:
+        return f"Card {self.card_id}: {self.probability} from {self.duelist} {self.duel_rank}"
+
 
 drop_table: typing.Tuple[Drop, ...] = (
     # SAPOW drops

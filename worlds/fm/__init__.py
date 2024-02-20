@@ -16,7 +16,8 @@ from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Se
 from .duelists import Duelist, mage_pairs, map_duelists_to_ids
 from .drop_pools import DuelRank, Drop
 from .client import FMClient  # This registers the client
-from .logic import get_obtainable_cards, get_unlocked_duelists
+from .logic import (get_all_cards_that_have_locations, filter_to_in_logic_cards, get_unlocked_duelists,
+                    LogicCard)
 
 
 class FMWeb(WebWorld):
@@ -119,16 +120,23 @@ class FMWorld(World):
 
         # If obtaining a card is outside of the player's settings, set it to excluded
         card_locations: typing.List[CardLocation] = []
-        obtainable_cards: typing.List[Card] = get_obtainable_cards(self.options)
-        for card in obtainable_cards:
-            loc = CardLocation(free_duel_region, self.player, card)
-            if not card.accessible_drops:
-                loc.exclude()
-                # Tracker doesn't care about these. The logic is irrevelant; they are exlcuded from the pool
-                # and guaranteed to be worthless
-                card.attach_accessible_drops(card.drop_pool)
-            set_rule(loc, lambda state, card_location=loc: self.is_card_location_accessible(card_location, state))
+        valid_cards_for_locations: typing.List[Card] = get_all_cards_that_have_locations(self.options)
+        # NB: The following functional also mutates the Card objects (sets their accessible_drops attribute)
+        in_logic_cards: typing.List[LogicCard] = filter_to_in_logic_cards(valid_cards_for_locations, self.options)
+        for logic_card in in_logic_cards:
+            loc = CardLocation(free_duel_region, self.player, logic_card.card, logic_card.accessible_drops)
             card_locations.append(loc)
+
+        # Tracker doesn't care about these. The logic is irrevelant; they are exlcuded from the pool
+        # and guaranteed to be worthless
+        for out_of_logic_card in [
+            c for c in valid_cards_for_locations if c.id not in map(lambda c: c.card.id, in_logic_cards)
+        ]:
+            loc = CardLocation(free_duel_region, self.player, out_of_logic_card, out_of_logic_card.drop_pool)
+            loc.exclude()
+            card_locations.append(loc)
+        for loc in card_locations:
+            set_rule(loc, lambda state, card_location=loc: self.is_card_location_accessible(card_location, state))
         free_duel_region.locations.extend(card_locations)
 
         # Add duelist locations

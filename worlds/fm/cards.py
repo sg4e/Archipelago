@@ -68,8 +68,7 @@ class Card:
     type: Type
     attribute: Optional[Attribute]
     password: Optional[str]
-    drop_pool: typing.List[Drop]
-    accessible_drops: typing.List[Drop]  # Initialized by the logic
+    drop_pool: typing.Tuple[Drop, ...]
 
     def __init__(self, _id: int, level: int, attack: int, defense: int, starchips: int, name: str,
                  first_guardian_star: Optional[GuardianStar], second_guardian_star: Optional[GuardianStar],
@@ -87,13 +86,15 @@ class Card:
         self.password = password
         # FM-TODO: add ways to obtain card besides drops (e.g fusions, rituals, starchips)
         if self.id in card_id_to_pools:
-            self.drop_pool = list(chain.from_iterable(card_id_to_pools[self.id].values()))
+            self.drop_pool = tuple(chain.from_iterable(card_id_to_pools[self.id].values()))
         else:
-            self.drop_pool = []
-        self.accessible_drops = []
+            self.drop_pool = tuple()
 
-    def attach_accessible_drops(self, drops: typing.List[Drop]):
-        self.accessible_drops.extend(drops)
+    def __str__(self) -> str:
+        return (
+            f"{self.name} "
+            f"dropped from {', '.join(str(e) for e in self.drop_pool)} "
+        )
 
 
 all_cards: typing.Tuple[Card, ...] = (

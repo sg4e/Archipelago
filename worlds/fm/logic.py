@@ -1,4 +1,5 @@
 import typing
+from typing import NamedTuple
 
 from .cards import all_cards, Card
 from .duelists import Duelist
@@ -29,26 +30,40 @@ class OptionsProxy:
         return ValueProxy(self.serialized_options[item])
 
 
+class LogicCard(NamedTuple):
+    card: Card
+    accessible_drops: typing.Tuple[Drop, ...]
+
+
 def determine_accessible_drops(
-        card: Card,
-        allowed_atecs: typing.List[Duelist],
-        # options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Drop]:
-        options: typing.Any) -> typing.List[Drop]:
-    remove_atecs: typing.List[Drop] = [drop for drop in card.drop_pool if drop.duel_rank is not DuelRank.SATEC
-                                       or drop.duelist in allowed_atecs]
-    remove_ultra_rares: typing.List[Drop] = [drop for drop in remove_atecs
-                                             if drop.probability > options.drop_rate_logic.value]
-    return remove_ultra_rares
+    card: Card,
+    allowed_atecs: typing.List[Duelist],
+    # options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Drop]:
+    options: typing.Any
+) -> typing.Tuple[Drop, ...]:
+    """Determines all drops that are in logic for a given card and set of options."""
+    legal_atecs: typing.List[Drop] = [drop for drop in card.drop_pool if drop.duel_rank is not DuelRank.SATEC
+                                      or drop.duelist in allowed_atecs]
+    legal_ultra_rares: typing.List[Drop] = [drop for drop in legal_atecs
+                                            if drop.probability > options.drop_rate_logic.value]
+    return tuple(legal_ultra_rares)
 
 
-def get_obtainable_cards(options: typing.Any) -> typing.List[Card]:
+def get_all_cards_that_have_locations(options: typing.Any) -> typing.List[Card]:
     # These cards are not obtainable by any means besides hacking
     unobtainable_ids: typing.Tuple[int, ...] = (
         7, 17, 18, 28, 51, 52, 56, 57, 60, 62, 63, 67, 235, 252, 284, 288, 299, 369, 428, 429, 499, 541, 554,
         555, 562, 603, 628, 640, 709, 711, 717, 721, 722
     )
-    obtainable_cards: typing.List[Card] = [card for card in all_cards if card.id not in unobtainable_ids]
+    # Remove the cards that don't drop. FM-TODO: fusion-only and ritual-only card logic
+    return [card for card in all_cards if card.id not in unobtainable_ids and card.drop_pool]
 
+
+def filter_to_in_logic_cards(
+    obtainable_cards: typing.List[Card],
+    # options: typing.Union[FMOptions, OptionsProxy]) -> typing.List[Card]:
+    options: typing.Any
+) -> typing.List[LogicCard]:
     logical_atec_duelists: typing.List[Duelist] = []
     if options.atec_logic.value == Constants.ATecLogicOptionValues.all:
         logical_atec_duelists.extend([duelist for duelist in Duelist if duelist is not Duelist.HEISHIN])
@@ -59,12 +74,12 @@ def get_obtainable_cards(options: typing.Any) -> typing.List[Card]:
             logical_atec_duelists.extend((
                 Duelist.KAIBA, Duelist.MAGE_SOLDIER, Duelist.MEADOW_MAGE, Duelist.NITEMARE
             ))
+    logic_cards: typing.List[LogicCard] = []
     for card in obtainable_cards:
-        in_logic: typing.List[Drop] = determine_accessible_drops(card, logical_atec_duelists, options)
-        card.attach_accessible_drops(in_logic)
-    # FM-TODO: fusion-only and ritual-only card logic
-    # For now, non-drop cards are excluded from the multiworld entirely
-    return [card for card in obtainable_cards if card.accessible_drops]
+        in_logic: typing.Tuple[Drop, ...] = determine_accessible_drops(card, logical_atec_duelists, options)
+        if in_logic:
+            logic_cards.append(LogicCard(card, in_logic))
+    return logic_cards
 
 
 def get_unlocked_duelists(

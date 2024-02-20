@@ -1,5 +1,5 @@
 from . import FMTestBase
-from ..items import progressive_duelist_item_name
+from ..utils import Constants
 from ..options import DuelistProgression, duelist_progression_map
 from ..utils import flatten
 from ..duelists import get_duelist_defeat_location_name
@@ -23,7 +23,7 @@ class TestBasic(FMTestBase):
         self.assertFalse(self.can_reach_location("Nitemare defeated"))
 
     def test_obtain_WSR(self) -> None:
-        prog_items = self.get_items_by_name(progressive_duelist_item_name)
+        prog_items = self.get_items_by_name(Constants.PROGRESSIVE_DUELIST_ITEM_NAME)
         before_isis = prog_items[:8]
         self.collect(before_isis)
         self.assert_cannot_reach_location("Widespread Ruin")
@@ -31,7 +31,7 @@ class TestBasic(FMTestBase):
         self.assert_can_reach_location("Widespread Ruin")
 
     def test_heishin_1_out_of_logic(self) -> None:
-        prog_items = self.get_items_by_name(progressive_duelist_item_name)
+        prog_items = self.get_items_by_name(Constants.PROGRESSIVE_DUELIST_ITEM_NAME)
         before_isis = prog_items[:8]  # more than enough progression
         self.collect(before_isis)
         self.assert_cannot_reach_location("Pumpking the King of Ghosts")
@@ -54,7 +54,7 @@ class TestAtecLogic(FMTestBase):
 
     def test_raigeki_not_in_logic_with_seto_but_no_trap(self) -> None:
         self.assert_cannot_reach_location("Raigeki")
-        self.collect(self.get_item_by_name(progressive_duelist_item_name))
+        self.collect(self.get_item_by_name(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         self.assert_cannot_reach_location("Raigeki")
 
 
@@ -68,7 +68,7 @@ class TestAtecTrapLogic(FMTestBase):
 
     def test_raigeki_in_logic_with_seto_and_invisible_wire(self) -> None:
         self.assert_cannot_reach_location("Raigeki")
-        self.collect(self.get_item_by_name(progressive_duelist_item_name))
+        self.collect(self.get_item_by_name(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         self.assert_can_reach_location("Raigeki")
 
 
@@ -81,7 +81,7 @@ def impl_test_duelist_progression_unlocks(test: FMTestBase, unlock_order):
             test.assert_can_reach_location(get_duelist_defeat_location_name(duelist))
         for duelist in locked_duelists:
             test.assert_cannot_reach_location(get_duelist_defeat_location_name(duelist))
-        progress = test.get_item_by_name(progressive_duelist_item_name)
+        progress = test.get_item_by_name(Constants.PROGRESSIVE_DUELIST_ITEM_NAME)
         test.collect(progress)
 
 
