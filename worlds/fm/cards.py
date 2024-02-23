@@ -4,6 +4,7 @@ from itertools import chain
 from typing import Optional
 from enum import Enum
 from .drop_pools import card_id_to_pools, Drop
+from .utils import Constants
 
 
 class GuardianStar(Enum):
@@ -95,6 +96,10 @@ class Card:
             f"{self.name} "
             f"dropped from {', '.join(str(e) for e in self.drop_pool)} "
         )
+
+    @property
+    def location_id(self) -> int:
+        return self.id + Constants.CARD_ID_OFFSET
 
 
 all_cards: typing.Tuple[Card, ...] = (
