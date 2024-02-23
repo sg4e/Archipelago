@@ -144,9 +144,8 @@ class ATecLogic(Choice):
 
     "All" means all duelists' SATec pools are in logic.
 
-    Regardless of your choice, you will never be expected to do an ATec until you have access to Pegasus, Isis, or Kaiba
-    (to acquire an Acid Trap Hole or Widespread Ruin), or Bakura, Keith, or Mai if you have "Invisible Wire enables
-    ATecs" set to "On".
+    Regardless of your choice, you will never be expected to do an ATec until you have access to a duelist who drops a
+    trap card of equal strength or stronger than the trap speicified by your "Weakest Trap for ATecs" setting.
     """
     display_name = "ATec Logic"
     option_off = Constants.ATecLogicOptionValues.off
