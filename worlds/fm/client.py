@@ -10,6 +10,7 @@ from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, UNLOCK_OFF
 from .items import starchip_item_ids_to_starchip_values
 from .locations import get_location_id_for_duelist, get_location_id_for_card_id
 from .logic import get_unlocked_duelists
+from .version import __version__
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
@@ -71,6 +72,9 @@ class FMClient(BizHawkClient):
         ctx.items_handling = 0b111
         ctx.want_slot_data = True
         ctx.watcher_timeout = 0.125  # value taken from Pokemon Emerald's client
+        from CommonClient import logger
+        logger.info(f"Forbidden Memories Client v{__version__}. For updates:")
+        logger.info("https://github.com/sg4e/Archipelago/releases/latest")
         return True
 
     async def game_watcher(self, ctx: "BizHawkClientContext") -> None:
