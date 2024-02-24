@@ -121,7 +121,6 @@ class FMWorld(World):
         # If obtaining a card is outside of the player's settings, set it to excluded
         card_locations: typing.List[CardLocation] = []
         valid_cards_for_locations: typing.List[Card] = get_all_cards_that_have_locations(self.options)
-        # NB: The following functional also mutates the Card objects (sets their accessible_drops attribute)
         in_logic_cards: typing.List[LogicCard] = filter_to_in_logic_cards(valid_cards_for_locations, self.options)
         for logic_card in in_logic_cards:
             loc = CardLocation(free_duel_region, self.player, logic_card.card, logic_card.accessible_drops)
