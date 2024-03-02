@@ -2,7 +2,7 @@ import dataclasses
 import typing
 
 from dataclasses import dataclass
-from Options import Range, Choice, PerGameCommonOptions
+from Options import Range, Choice, PerGameCommonOptions, Toggle
 from .duelists import Duelist
 from .utils import Constants
 
@@ -85,6 +85,14 @@ duelist_progression_map = {
         (Duelist.TEANA_2ND,)  # + mages unlocked in random order
     )
 }
+
+
+class LocalStarchips(Toggle):
+    """
+    If enabled, 75% of your starchip items will be local to your world.
+    """
+    display_name = "Local Starchip Bias"
+    default = False
 
 
 class Final6Progression(Choice):
@@ -179,6 +187,7 @@ class ATecTrap(Choice):
 @dataclass
 class FMOptions(PerGameCommonOptions):
     duelist_progression: DuelistProgression
+    local_starchips: LocalStarchips
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence
     atec_logic: ATecLogic

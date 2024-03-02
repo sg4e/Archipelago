@@ -8,10 +8,11 @@ from BaseClasses import LocationProgressType
 
 base_options = {
     "duelist_progression": "campaign",
+    "local_starchips": False,
     "final6_sequence": "vanilla",
     "final6_progression": "fixed",
     "atec_logic": "off",
-    "invisible_wire_logic": False,
+    "atec_trap": "acid_trap_hole",
     "drop_rate_logic": 4,
 }
 
@@ -142,6 +143,22 @@ class TestMostRandom(FMTestBase):
         "final6_sequence": "all_6_shuffled",
         "final6_progression": "shuffled",
         "atec_logic": "all",
-        "invisible_wire_logic": False,
+        "atec_trap": "fake_trap",
         "drop_rate_logic": 0,
+    }
+
+
+class TestLocalStarchips(FMTestBase):
+    options = {
+        **base_options,
+        "local_starchips": True
+    }
+
+
+class TestLocalStarchipsTightProgression(FMTestBase):
+    options = {
+        **base_options,
+        "local_starchips": True,
+        "duelist_progression": "singular",
+        "atec_logic": "off",
     }

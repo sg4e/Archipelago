@@ -40,4 +40,4 @@ cp "$temp_dir/fm.apworld" "$HOME"
 rm -rf "$temp_dir"
 
 echo "Files signed with GPG and zipped successfully."
-
+echo "Don't forget to increment the version!"

@@ -1,15 +1,17 @@
 import typing
+import warnings
 
 from itertools import chain
+from collections import Counter
 from worlds.AutoWorld import World, WebWorld
-from BaseClasses import CollectionState, Region, Tutorial
+from BaseClasses import CollectionState, Region, Tutorial, LocationProgressType
 from worlds.generic.Rules import set_rule
 from .items import item_name_to_item_id as item_id_map
 from .items import create_item as fabricate_item
-from .items import FMItem, create_victory_event, create_starchip_items
+from .items import FMItem, create_victory_event, create_starchip_items, starchip_item_ids_to_starchip_values
 from .utils import Constants, flatten
 from .locations import location_name_to_id as location_map
-from .locations import CardLocation, DuelistLocation
+from .locations import FMLocation, CardLocation, DuelistLocation
 from .cards import Card
 from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecTrap,
                       duelist_progression_map)
@@ -33,6 +35,9 @@ class FMWeb(WebWorld):
     )
 
     tutorials = [setup_en]
+
+
+MINIMUM_FARM_VIABILITY: typing.Final[int] = 3
 
 
 class FMWorld(World):
@@ -172,11 +177,57 @@ class FMWorld(World):
         for _ in range(len(self.duelist_unlock_order)):  # This is not an off-by-one error
             itempool.append(self.create_item(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
-        itempool.extend(create_starchip_items(self.player, len(free_duel_region.locations) - len(itempool)
-                                              - len(final_6_duelist_locations), self.random))
+        filler_slots: int = len(free_duel_region.locations) - len(itempool) - len(final_6_duelist_locations)
         # With shuffled progression, the first 5 F6 duelists do not have lock-placed items in their locations
         if self.options.final6_progression.value == Final6Progression.option_shuffled:
-            itempool.extend(create_starchip_items(self.player, len(final_6_duelist_locations) - 1, self.random))
+            filler_slots += len(final_6_duelist_locations) - 1
+        assert (
+            sum(1 for loc in free_duel_region.locations if not loc.item) - len(itempool) == filler_slots
+        ), "Filler slots and filler locations do not match."
+        starchip_items: typing.List[FMItem] = create_starchip_items(self.player, filler_slots, self.random)
+        if self.options.local_starchips:
+            assert all([x.code for x in starchip_items])
+            starchip_items.sort(key=lambda x: starchip_item_ids_to_starchip_values[x.code] if x.code else 0)
+            split_index: int = len(starchip_items) * 3 // 4
+            local_starchip_items: typing.List[FMItem] = starchip_items[:split_index]
+            foreign_starchip_items: typing.List[FMItem] = starchip_items[split_index:]
+            itempool.extend(foreign_starchip_items)
+            # Start by filling all excluded locations with filler
+            excluded_locations: typing.List[FMLocation] = [
+                typing.cast(FMLocation, loc) for loc in free_duel_region.locations if (
+                    loc.progress_type == LocationProgressType.EXCLUDED and not loc.item
+                    )
+            ]
+            self.random.shuffle(excluded_locations)
+            starchip_index: int = 0
+            while starchip_index < len(local_starchip_items) and starchip_index < len(excluded_locations):
+                excluded_locations[starchip_index].place(local_starchip_items[starchip_index])
+                starchip_index += 1
+            # Distribute remaining local starchip items across pools
+            unfilled_locs: typing.List[CardLocation] = [loc for loc in free_duel_region.locations if (
+                isinstance(loc, CardLocation) and not loc.item
+            )]
+            farm_logical_drops: typing.Counter[typing.Tuple[Duelist, DuelRank]] = Counter()
+            for loc in unfilled_locs:
+                farm_logical_drops.update([(drop.duelist, drop.duel_rank) for drop in loc.accessible_drops])
+            while unfilled_locs and starchip_index < len(local_starchip_items):
+                potential_place: CardLocation = self.random.choice(unfilled_locs)
+                # If any match, farm is endangered and isn't eligible.
+                if not any(farm_logical_drops[(drop.duelist, drop.duel_rank)] <= MINIMUM_FARM_VIABILITY for drop in
+                           potential_place.accessible_drops):
+                    for drop in potential_place.accessible_drops:
+                        farm_logical_drops[(drop.duelist, drop.duel_rank)] -= 1
+                    potential_place.place(local_starchip_items[starchip_index])
+                    starchip_index += 1
+                unfilled_locs.remove(potential_place)
+            if starchip_index < len(local_starchip_items):
+                warnings.warn(
+                    "Out of locations to place local starchips. Adding "
+                    f"{len(local_starchip_items) - starchip_index} starchip items to the multiworld pool..."
+                )
+                itempool.extend(local_starchip_items[starchip_index:])
+        else:
+            itempool.extend(starchip_items)
         self.multiworld.itempool.extend(itempool)
 
         menu_region.connect(free_duel_region)
