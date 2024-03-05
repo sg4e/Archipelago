@@ -2,7 +2,7 @@ import dataclasses
 import typing
 
 from dataclasses import dataclass
-from Options import Range, Choice, PerGameCommonOptions
+from Options import Range, Choice, PerGameCommonOptions, DeathLink
 from .duelists import Duelist
 from .utils import Constants
 
@@ -184,6 +184,7 @@ class FMOptions(PerGameCommonOptions):
     atec_logic: ATecLogic
     atec_trap: ATecTrap
     drop_rate_logic: DropRateLogic
+    death_link: DeathLink
 
     def serialize(self) -> typing.Dict[str, int]:
         return {field.name: getattr(self, field.name).value for field in dataclasses.fields(self)}

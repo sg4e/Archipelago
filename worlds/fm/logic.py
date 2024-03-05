@@ -5,29 +5,13 @@ from .cards import all_cards, Card
 from .duelists import Duelist
 from .drop_pools import Drop, DuelRank
 from .utils import Constants, flatten
+# from .proxy import ValueProxy, OptionsProxy
 
 # I tried this way but WebHost.py thew a NameError and refuse to load the WebWorld
 # Why would it care about typing?
 
 # if typing.TYPE_CHECKING:
 #     from .options import FMOptions
-
-
-class ValueProxy:
-    value: int
-
-    def __init__(self, value: int) -> None:
-        self.value = value
-
-
-class OptionsProxy:
-    serialized_options: typing.Dict[str, int]
-
-    def __init__(self, serialized_options: typing.Dict[str, int]) -> None:
-        self.serialized_options = serialized_options
-
-    def __getattr__(self, item: str) -> ValueProxy:
-        return ValueProxy(self.serialized_options[item])
 
 
 class LogicCard(NamedTuple):
