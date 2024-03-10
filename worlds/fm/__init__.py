@@ -238,5 +238,6 @@ class FMWorld(World):
         return {
             Constants.DUELIST_UNLOCK_ORDER_KEY: map_duelists_to_ids(self.duelist_unlock_order),
             Constants.FINAL_6_ORDER_KEY: tuple(duelist.id for duelist in self.final_6_order),
-            Constants.GAME_OPTIONS_KEY: self.options.serialize()
+            Constants.GAME_OPTIONS_KEY: self.options.serialize(),
+            Constants.DEATHLINK_OPTION_KEY: self.options.death_link.value
         }

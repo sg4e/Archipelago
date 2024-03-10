@@ -1,6 +1,7 @@
 import typing
 
 from typing import TYPE_CHECKING
+from random import Random
 from NetUtils import ClientStatus
 import worlds._bizhawk as bizhawk
 from worlds._bizhawk.client import BizHawkClient
@@ -19,6 +20,22 @@ CARDS_IN_CHESTS_OFFSET: typing.Final[int] = 0x1D0250
 MAIN_RAM: typing.Final[str] = "MainRAM"
 STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET: typing.Final[int] = LATEGAME_DUELIST_UNLOCK_OFFSET + 0x04
 STARCHIP_RAM_OFFSET: typing.Final[int] = 0x1D07E0
+MAGIC_DUEL_BYTE_OFFSET: typing.Final[int] = 0x09B238
+"""This byte is FF during an active, ready duel (all duel-specific memory values are set), 01 after a loss"""
+AI_LIFE_POINTS_SHORT_OFFSET: typing.Final[int] = 0x0EA024
+PLAYER_LIFE_POINTS_SHORT_OFFSET: typing.Final[int] = 0x0EA004
+AI_DUELIST_ID_OFFSET: typing.Final[int] = 0x09B361
+
+SILLY_DEATH_STRINGS: typing.Tuple[str, ...] = (
+    "{o} NEEDED precisely those two cards to win against {p}.",
+    "{p}'s deck couldn't win against a deck like {o}'s.",
+    "{o} topdecked the only card that could beat {p}."
+    "{o} had the perfect cards against {p}.",
+    "There was nothing {p} could do against {o}.",
+    "{p} played that perfectly against {o} and still lost.",
+    "{o}'s deck had no pathetic cards against {p}.",
+    "{p}'s time to d-d-d-d-d-d-d-duel is over against {o}."
+)
 
 
 def get_wins_and_losses_from_bytes(b: bytes) -> typing.Tuple[int, int]:
@@ -33,6 +50,9 @@ class FMClient(BizHawkClient):
     local_checked_locations: typing.Set[int]
     duelist_unlock_order: typing.Tuple[typing.Tuple[Duelist, ...], ...]
     final_6_order: typing.Tuple[Duelist, ...]
+    local_last_deathlink: float = float("-inf")
+    awaiting_deathlink_death: bool = False
+    random: Random
 
     def __init__(self) -> None:
         super().__init__()
@@ -72,10 +92,36 @@ class FMClient(BizHawkClient):
         ctx.items_handling = 0b111
         ctx.want_slot_data = True
         ctx.watcher_timeout = 0.125  # value taken from Pokemon Emerald's client
+        self.random = Random()  # used for silly random deathlink messages
         from CommonClient import logger
         logger.info(f"Forbidden Memories Client v{__version__}. For updates:")
         logger.info("https://github.com/sg4e/Archipelago/releases/latest")
         return True
+
+    async def kill_player(self, ctx: "BizHawkClientContext") -> bool:
+        """Return True if this method thinks it actually killed the player, False otherwise"""
+        # # Check that the magic duel byte is FF and opponent's LP is not 0
+        # magic_byte, ai_lp_bytes = await bizhawk.read(ctx.bizhawk_ctx, [
+        #     (MAGIC_DUEL_BYTE_OFFSET, 1, MAIN_RAM),
+        #     (AI_LIFE_POINTS_SHORT_OFFSET, 2, MAIN_RAM)
+        # ])
+        # ai_lp: int = int.from_bytes(ai_lp_bytes, "little")
+        # if magic_byte == b"\xFF" and ai_lp > 0:
+        #     # Player is in a duel and eligible to be killed (probably)
+        #     await bizhawk.write
+        return await bizhawk.guarded_write(
+            ctx.bizhawk_ctx,
+            [(PLAYER_LIFE_POINTS_SHORT_OFFSET, (0).to_bytes(2, "little"), MAIN_RAM)],
+            [(MAGIC_DUEL_BYTE_OFFSET, (0xFF).to_bytes(1, "little"), MAIN_RAM)]
+        )
+
+    async def is_player_dead(self, ctx: "BizHawkClientContext") -> bool:
+        "Checks if player is dead and resets the RAM death info byte"
+        return await bizhawk.guarded_write(
+            ctx.bizhawk_ctx,
+            [(MAGIC_DUEL_BYTE_OFFSET, (0x00).to_bytes(1, "little"), MAIN_RAM)],  # write
+            [(MAGIC_DUEL_BYTE_OFFSET, (0x01).to_bytes(1, "little"), MAIN_RAM)]   # read
+        )
 
     async def game_watcher(self, ctx: "BizHawkClientContext") -> None:
         # Example of the chest RAM (raw, set Bizhawk memory viewer to big-endian):
@@ -99,8 +145,35 @@ class FMClient(BizHawkClient):
             self.final_6_order = tuple(
                 ids_to_duelists[id] for id in ctx.slot_data[Constants.FINAL_6_ORDER_KEY]
             )
+            if ctx.slot_data[Constants.DEATHLINK_OPTION_KEY]:
+                await ctx.update_death_link(True)
 
             try:
+                # Deathlink
+                if "DeathLink" in ctx.tags:
+                    if ctx.last_death_link > self.local_last_deathlink:
+                        # Someone died on the link
+                        self.local_last_deathlink = ctx.last_death_link
+                        self.awaiting_deathlink_death = await self.kill_player(ctx)
+                    if await self.is_player_dead(ctx):
+                        if not self.awaiting_deathlink_death:
+                            username: str = "the Pharaoh"
+                            try:
+                                username = ctx.player_names[typing.cast(int, ctx.slot)]
+                            except KeyError:
+                                pass
+                            opponent_name: str = "the opposing duelist"
+                            try:
+                                duelist_id: int = int.from_bytes((await bizhawk.read(
+                                    ctx.bizhawk_ctx, [(AI_DUELIST_ID_OFFSET, 1, MAIN_RAM)]
+                                ))[0], "little")
+                                opponent_name = str(ids_to_duelists[duelist_id])
+                            except Exception:
+                                pass
+                            death_str: str = self.random.choice(SILLY_DEATH_STRINGS).format(o=opponent_name, p=username)
+                            death_str = death_str[0].upper() + death_str[1:]
+                            await ctx.send_death(death_text=death_str)
+                        self.awaiting_deathlink_death = False
                 if self.duelist_unlock_order is not None and self.final_6_order is not None:
                     # Unlock duelists for Progressive Duelist item count
                     progressive_duelist_item_count: int = sum(
