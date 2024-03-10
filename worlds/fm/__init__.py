@@ -21,6 +21,7 @@ from .drop_pools import DuelRank, Drop
 from .client import FMClient  # type: ignore  # noqa
 from .logic import (get_all_cards_that_have_locations, filter_to_in_logic_cards, get_unlocked_duelists,
                     LogicCard)
+from .version import __version__
 
 
 class FMWeb(WebWorld):
@@ -237,6 +238,7 @@ class FMWorld(World):
 
     def fill_slot_data(self) -> typing.Dict[str, typing.Any]:
         return {
+            Constants.GENERATED_WITH_KEY: __version__,
             Constants.DUELIST_UNLOCK_ORDER_KEY: map_duelists_to_ids(self.duelist_unlock_order),
             Constants.FINAL_6_ORDER_KEY: tuple(duelist.id for duelist in self.final_6_order),
             Constants.GAME_OPTIONS_KEY: self.options.serialize(),

@@ -16,6 +16,7 @@ class Constants:
     STARCHIP_ITEM_ID_OFFSET: int = ITEM_ID_OFFSET + 0x100
     VICTORY_ITEM_ID: int = 0x4B1DDEFFFFFF
     VICTORY_ITEM_NAME: str = "Egypt saved"
+    GENERATED_WITH_KEY: str = "v"
     DUELIST_UNLOCK_ORDER_KEY: str = "d"
     FINAL_6_ORDER_KEY: str = "f"
     GAME_OPTIONS_KEY: str = "o"
