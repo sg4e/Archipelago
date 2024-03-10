@@ -13,6 +13,9 @@ from .utils import Constants, flatten
 # if typing.TYPE_CHECKING:
 #     from .options import FMOptions
 
+# The `options` module can't be imported here, because the tracker loads this file and doesn't load any of the
+# Baseclasses. The solution above didn't work, so I reluctantly settled on typing.Any
+
 
 class LogicCard(NamedTuple):
     card: Card
