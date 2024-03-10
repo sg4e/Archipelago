@@ -17,7 +17,8 @@ from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Se
                       duelist_progression_map)
 from .duelists import Duelist, mage_pairs, map_duelists_to_ids
 from .drop_pools import DuelRank, Drop
-from .client import FMClient  # This registers the client
+# This registers the client. The comment ignores "unused import" linter messages
+from .client import FMClient  # type: ignore  # noqa
 from .logic import (get_all_cards_that_have_locations, filter_to_in_logic_cards, get_unlocked_duelists,
                     LogicCard)
 
