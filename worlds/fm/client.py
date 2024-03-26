@@ -50,13 +50,15 @@ class FMClient(BizHawkClient):
     local_checked_locations: typing.Set[int]
     duelist_unlock_order: typing.Tuple[typing.Tuple[Duelist, ...], ...]
     final_6_order: typing.Tuple[Duelist, ...]
-    local_last_deathlink: float = float("-inf")
-    awaiting_deathlink_death: bool = False
+    local_last_deathlink: float
+    awaiting_deathlink_death: bool
     random: Random
 
     def __init__(self) -> None:
         super().__init__()
         self.local_checked_locations = set()
+        self.local_last_deathlink = float("-inf")
+        self.awaiting_deathlink_death = False
 
     async def validate_rom(self, ctx: "BizHawkClientContext") -> bool:
         # Forbidden Memories has a very active romhacking community. Although not all mods will be compatible with AP
