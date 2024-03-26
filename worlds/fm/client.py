@@ -15,6 +15,7 @@ from .version import __version__
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
+    from NetUtils import JSONMessagePart
 
 CARDS_IN_CHESTS_OFFSET: typing.Final[int] = 0x1D0250
 MAIN_RAM: typing.Final[str] = "MainRAM"
@@ -52,6 +53,7 @@ class FMClient(BizHawkClient):
     final_6_order: typing.Tuple[Duelist, ...]
     local_last_deathlink: float
     awaiting_deathlink_death: bool
+    checked_version_string: bool
     random: Random
 
     def __init__(self) -> None:
@@ -59,6 +61,7 @@ class FMClient(BizHawkClient):
         self.local_checked_locations = set()
         self.local_last_deathlink = float("-inf")
         self.awaiting_deathlink_death = False
+        self.checked_version_string = False
 
     async def validate_rom(self, ctx: "BizHawkClientContext") -> bool:
         # Forbidden Memories has a very active romhacking community. Although not all mods will be compatible with AP
@@ -141,6 +144,24 @@ class FMClient(BizHawkClient):
         # Pokemon Emerald checks the slot data here
         # Can this be evaluated only once?
         if ctx.slot_data is not None:
+            if not self.checked_version_string:
+                self.checked_version_string = True
+                generated_version: str = (ctx.slot_data[Constants.GENERATED_WITH_KEY] if Constants.GENERATED_WITH_KEY
+                                          in ctx.slot_data else "undefined")
+                if __version__ != generated_version:
+                    parts: typing.List[JSONMessagePart] = []
+                    from NetUtils import add_json_text
+                    add_json_text(parts, "WARNING:", type="color", color="red")
+                    add_json_text(parts, " generator/client apworld mismatch.")
+                    ctx.on_print_json({"data": parts})
+                    from CommonClient import logger
+                    logger.warning(
+                        "The multiworld was generated with a different "
+                        "version of the apworld file. Please install the same apworld version for "
+                        "maximum compatibility."
+                    )
+                    logger.warning(f"Multiworld generated with apworld: {generated_version}")
+                    logger.warning(f"Installed apworld: {__version__}")
             self.duelist_unlock_order = map_ids_to_duelists(
                 ctx.slot_data[Constants.DUELIST_UNLOCK_ORDER_KEY]
             )
