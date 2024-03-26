@@ -1,0 +1,28 @@
+name: Attach Template YAML
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  build-template-yamls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Archipelago code
+        uses: actions/checkout@v4
+
+      - name: Get a recent python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate template YAMLs
+        run: |
+          python Launcher.py "Generate Template Settings"
+
+      - name: Attach YAML to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            Players/Templates/Yu-Gi-Oh! Forbidden Memories.yaml
