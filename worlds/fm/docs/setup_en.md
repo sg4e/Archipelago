@@ -38,7 +38,7 @@ locate `EmuHawk.exe` in your BizHawk install.
 before connecting to the multiworld.**
 4. When you're happy with your deck, save. From here on, you will **never** enter Campaign mode again.
 You will duel exclusively in Free Duel mode.
-5. In EmuHawk, go to `Tools > Lua Console`. This window must stay open while playing.
+5. In EmuHawk, go to `Tools > Lua Console`. This window must stay open while playing. Be careful to avoid clicking "TAStudio" below it in the menu, as this is known to delete your savefile.
 6. In the Lua Console window, go to `Script > Open Script…`.
 7. Navigate to your Archipelago install folder and open `data/lua/connector_bizhawk_generic.lua`.
 8. The emulator and client will eventually connect to each other. The BizHawk Client window should indicate that it
@@ -62,18 +62,15 @@ including how to patch your game for Card Drop Mod. [You can connect with them v
 
 Here's a particularly useful resource with all duelists' drop tables: [Pocket Duelist](https://pd.ygo.fm/).
 
-## Beta Notes and Limitations
+## Notes and Limitations
 
-The current version of Yu-Gi-Oh! Forbidden Memories in Archipelago is still an early beta. As such, expect a few bugs
-and limited features. Please be aware of the following issues specifically:
-
-1. Only cards in chest count as checks. Cards in library (fusions, rituals, etc.) will be supported later.
+1. Only cards in chest count as checks (not fusions, rituals, etc.).
 2. Starchips are out of logic. The logic never expects you to buy a card with starchips. Consequently, starchip-only
 cards never gate progression.
 3. A card has to be in your chest at least temporarily to count as a check. Therefore, cards in your starter deck
 won't be "checked" until you swap them out into your chest. Your chest memory isn't refreshed until you leave the
 "Build Deck" screen, so you can't quickly swap a card in and out of your deck to check it. This is a limitation
-with how the game writes to chest memory and will be fixed when card tracking checks the library instead of the chest.
+with how the game writes to chest memory.
 4. Only card drops are considered for logic (since acquiring a card is the only way to get it in your chest).
 5. If you get a Progressive Duelist item while on the Free Duel screen, you'll have to back out and re-enter to
 refresh the available duelists.
