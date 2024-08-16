@@ -218,7 +218,7 @@ class FMClient(BizHawkClient):
                         first_bit_field |= Duelist.HEISHIN.bitflag
                     await bizhawk.write(ctx.bizhawk_ctx, [(
                         UNLOCK_OFFSET,
-                        first_bit_field.to_bytes(4, "little") + second_bit_field.to_bytes(1),
+                        first_bit_field.to_bytes(4, "little") + second_bit_field.to_bytes(1, "little"),
                         MAIN_RAM
                     )])
                 # Read number of wins and losses over each duelist for "Duelist defeated" locations
