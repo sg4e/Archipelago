@@ -184,12 +184,24 @@ class ATecTrap(Choice):
     default = option_acid_trap_hole
 
 
+class ExtraProgressiveDuelists(Range):
+    """
+    Adds extra Progressive Duelist items into the item pool. Note that this setting can allow all but the final Final 6
+    member to be skipped.
+    """
+    display_name = "Extra Progressive Duelist Items"
+    range_start = 0
+    range_end = 20
+    default = 0
+
+
 @dataclass
 class FMOptions(PerGameCommonOptions):
     duelist_progression: DuelistProgression
     local_starchips: LocalStarchips
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence
+    extra_progressive_duelists: ExtraProgressiveDuelists
     atec_logic: ATecLogic
     atec_trap: ATecTrap
     drop_rate_logic: DropRateLogic

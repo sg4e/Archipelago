@@ -176,7 +176,8 @@ class FMWorld(World):
         final_6_duelist_locations[-1].place_locked_item(create_victory_event(self.player))
         free_duel_region.locations.extend(final_6_duelist_locations)
         # Add progressive duelist items
-        for _ in range(len(self.duelist_unlock_order)):  # This is not an off-by-one error
+        # This is not an off-by-one error
+        for _ in range(len(self.duelist_unlock_order) + self.options.extra_progressive_duelists):
             itempool.append(self.create_item(Constants.PROGRESSIVE_DUELIST_ITEM_NAME))
         # Fill the item pool with starchips; Final 6 duelist locations are all placed manually
         filler_slots: int = len(free_duel_region.locations) - len(itempool) - len(final_6_duelist_locations)
