@@ -87,6 +87,18 @@ duelist_progression_map = {
 }
 
 
+class RandomizeDuelistOrder(Toggle):
+    """
+    If enabled, the order of the groups of duelists you unlock up until Final 6 will be randomized. Your starting
+    group of duelists remains unchanged.
+
+    For "Campaign" and "Singular" progression choices, you are guaranteed to unlock all of the Egypt 1 and
+    World Tournament duelists before unlocking any Egypt 2 duelists.
+    """
+    display_name = "Randomize Duelist Unlock Order"
+    default = False
+
+
 class LocalStarchips(Toggle):
     """
     If enabled, 75% of your starchip items will be local to your world.
@@ -198,6 +210,7 @@ class ExtraProgressiveDuelists(Range):
 @dataclass
 class FMOptions(PerGameCommonOptions):
     duelist_progression: DuelistProgression
+    randomize_duelist_order: RandomizeDuelistOrder
     local_starchips: LocalStarchips
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence

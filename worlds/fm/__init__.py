@@ -97,6 +97,12 @@ class FMWorld(World):
             self.final_6_order.append(Duelist.NITEMARE)
 
         self.duelist_unlock_order = list(duelist_progression_map[self.options.duelist_progression.value])
+        if self.options.randomize_duelist_order:
+            starting_unlocks: typing.Tuple[Duelist, ...] = self.duelist_unlock_order[0]
+            to_randomize: typing.List[typing.Tuple[Duelist, ...]] = self.duelist_unlock_order[1:]
+            self.random.shuffle(to_randomize)
+            to_randomize.insert(0, starting_unlocks)
+            self.duelist_unlock_order = to_randomize
         if self.options.duelist_progression.value == DuelistProgression.option_campaign:
             def pop_random_pair(x): return x.pop(self.random.randint(0, len(x) - 1))
             mages = list(mage_pairs)
@@ -236,6 +242,12 @@ class FMWorld(World):
         menu_region.connect(free_duel_region)
         self.multiworld.regions.append(free_duel_region)
         self.multiworld.regions.append(menu_region)
+
+    def write_spoiler_header(self, spoiler_handle: typing.TextIO) -> None:
+        if self.options.randomize_duelist_order:
+            spoiler_handle.write("\nDuelist Unlock Order:\n\n")
+            for group in self.duelist_unlock_order:
+                spoiler_handle.write(", ".join(map(str, group)) + "\n")
 
     def fill_slot_data(self) -> typing.Dict[str, typing.Any]:
         return {
