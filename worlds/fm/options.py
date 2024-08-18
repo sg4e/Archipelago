@@ -170,7 +170,7 @@ class ATecLogic(Choice):
 
 class ATecTrap(Choice):
     """
-    The weakest (i.e. lowest mox Life Point activation) trap card with which you can be expected to ATec a duelist.
+    The weakest (i.e. lowest mox Attack Point activation) trap card with which you can be expected to ATec a duelist.
     ATecs will be in logic as soon as you have access to a duelist who drops this card or a stronger trap card,
     excluding their SATec drop pool. Your other ATec settings are still respected.
 
