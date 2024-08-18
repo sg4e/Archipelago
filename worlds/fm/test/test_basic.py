@@ -162,3 +162,19 @@ class TestLocalStarchipsTightProgression(FMTestBase):
         "duelist_progression": "singular",
         "atec_logic": "off",
     }
+
+
+class TestCardItemMode(FMTestBase):
+    options = {
+        **base_options,
+        "item_mode": "cards",
+        "unobtainable_rewards": False
+    }
+
+
+class TestCardItemModeWithUnobtainables(FMTestBase):
+    options = {
+        **base_options,
+        "item_mode": "cards",
+        "unobtainable_rewards": True
+    }

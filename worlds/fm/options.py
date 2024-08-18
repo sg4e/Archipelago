@@ -99,11 +99,45 @@ class RandomizeDuelistOrder(Toggle):
     default = False
 
 
+class ItemMode(Choice):
+    """
+    Selects what type of items to place at checks in addition to the required Progressive Duelist items.
+
+    "Starchips" places a value of starchips behind checks.
+
+    "Cards" splits the pool of accessible checks in half, reserving one half as reward items, and the other half as
+    check locations. The reward cards are used to fill the check locations instead of starchips. Using a tracker is
+    highly recommended for this setting since there's no other way to determine which cards are randomly selected to be
+    the check locations.
+    """
+    display_name = "Item Mode"
+    option_starchips = "Starchips"
+    option_cards = "Cards"
+    default = option_starchips
+
+
 class LocalStarchips(Toggle):
     """
     If enabled, 75% of your starchip items will be local to your world.
+
+    Has no effect unless "Starchips" is selected for Item Mode.
     """
     display_name = "Local Starchip Bias"
+    default = False
+
+
+class UnobtainableRewards(Toggle):
+    """
+    When using the "Cards" Item Mode, normally only cards that would be eligible as checks under your settings can be
+    selected as reward items. If this setting is enabled, any card can be selected as a reward, including cards that
+    cannot be otherwise obtained by the player like Black Luster Soldier.
+
+    Note that enabling this setting may trivialize the game if cards such as Blue-Eyes Ultimate Dragon or Gate Guardian
+    are rolled as item rewards.
+
+    Has no effect unless "Cards" is selected for Item Mode.
+    """
+    display_name = "Unobtainable Cards As Items"
     default = False
 
 
@@ -211,7 +245,9 @@ class ExtraProgressiveDuelists(Range):
 class FMOptions(PerGameCommonOptions):
     duelist_progression: DuelistProgression
     randomize_duelist_order: RandomizeDuelistOrder
+    item_mode: ItemMode
     local_starchips: LocalStarchips
+    unobtainable_rewards: UnobtainableRewards
     final6_progression: Final6Progression
     final6_sequence: Final6Sequence
     extra_progressive_duelists: ExtraProgressiveDuelists

@@ -3,12 +3,13 @@ import typing
 from typing import TYPE_CHECKING
 from random import Random
 from NetUtils import ClientStatus
+from collections import Counter
 import worlds._bizhawk as bizhawk
 from worlds._bizhawk.client import BizHawkClient
 from .utils import Constants
 from .duelists import (Duelist, map_ids_to_duelists, ids_to_duelists, UNLOCK_OFFSET,
                        LATEGAME_DUELIST_UNLOCK_OFFSET)
-from .items import starchip_item_ids_to_starchip_values
+from .items import starchip_item_ids_to_starchip_values, is_card_item, convert_item_id_to_card_id
 from .locations import get_location_id_for_duelist, get_location_id_for_card_id
 from .logic import get_unlocked_duelists
 from .version import __version__
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
 CARDS_IN_CHESTS_OFFSET: typing.Final[int] = 0x1D0250
 MAIN_RAM: typing.Final[str] = "MainRAM"
 STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET: typing.Final[int] = LATEGAME_DUELIST_UNLOCK_OFFSET + 0x04
+LAST_ITEM_AWARDED_INDEX_BYTE_OFFSET: typing.Final[int] = STARCHIPS_AWARDED_COMANDEERED_BYTE_OFFSET + 0x04
+# There are 7*4 more unused bytes in this area for more values
 STARCHIP_RAM_OFFSET: typing.Final[int] = 0x1D07E0
 MAGIC_DUEL_BYTE_OFFSET: typing.Final[int] = 0x09B238
 """This byte is FF during an active, ready duel (all duel-specific memory values are set), 01 after a loss"""
@@ -128,6 +131,11 @@ class FMClient(BizHawkClient):
             [(MAGIC_DUEL_BYTE_OFFSET, (0x01).to_bytes(1, "little"), MAIN_RAM)]   # read
         )
 
+    async def read_chest_memory(self, ctx: "BizHawkClientContext") -> bytes:
+        return (await bizhawk.read(
+            ctx.bizhawk_ctx, [(CARDS_IN_CHESTS_OFFSET, 722, MAIN_RAM)]
+        ))[0]
+
     async def game_watcher(self, ctx: "BizHawkClientContext") -> None:
         # Example of the chest RAM (raw, set Bizhawk memory viewer to big-endian):
         # 0x00000000 0x00000000 0x02000000 0x00000001
@@ -233,10 +241,7 @@ class FMClient(BizHawkClient):
                 new_local_checked_locations: typing.Set[int] = set([
                     get_location_id_for_duelist(key) for key, value in duelists_to_wins.items() if value != 0
                 ])
-                # Now check the library (for now, the card chest)
-                chest_memory: bytes = (await bizhawk.read(
-                    ctx.bizhawk_ctx, [(CARDS_IN_CHESTS_OFFSET, 722, MAIN_RAM)]
-                ))[0]
+                chest_memory: bytes = await self.read_chest_memory(ctx)
                 owned_ids: set[int] = set(
                     [get_location_id_for_card_id(i+1) for i in range(722) if chest_memory[i] != 0]
                 )
@@ -277,5 +282,33 @@ class FMClient(BizHawkClient):
                     ], [
                         (STARCHIP_RAM_OFFSET, starchip_ram_bytes, MAIN_RAM)  # guarded value
                     ])
+                # Granting cards into memory
+                last_awarded_item_index: int = int.from_bytes(
+                    (await bizhawk.read(ctx.bizhawk_ctx, [(LAST_ITEM_AWARDED_INDEX_BYTE_OFFSET, 4, MAIN_RAM)]))[0],
+                    "little"
+                )
+                item_count: int = len(ctx.items_received)
+                if last_awarded_item_index < item_count:
+                    new_item_ids: typing.List[int] = [
+                        item.item for item in ctx.items_received[last_awarded_item_index:]
+                    ]
+                    new_card_item_ids: typing.List[int] = [id for id in new_item_ids if is_card_item(id)]
+                    if new_card_item_ids:
+                        card_ids: typing.List[int] = [convert_item_id_to_card_id(i) for i in new_card_item_ids]
+                        new_card_counter = Counter(card_ids)
+                        chest_memory = await self.read_chest_memory(ctx)
+                        writes: typing.List[typing.Tuple[int, typing.Iterable[int], str]] = [(
+                            CARDS_IN_CHESTS_OFFSET + card_id - 1,
+                            (chest_memory[card_id-1] + new_count).to_bytes(1, "little"),
+                            MAIN_RAM
+                        ) for card_id, new_count in new_card_counter.items()]
+                        # Technically there's a race condition if they win the new card at the same time,
+                        # but why bother since they get the card anyway
+                        await bizhawk.write(ctx.bizhawk_ctx, writes)
+                    await bizhawk.write(ctx.bizhawk_ctx, [(
+                        LAST_ITEM_AWARDED_INDEX_BYTE_OFFSET,
+                        item_count.to_bytes(4, "little"),
+                        MAIN_RAM
+                    )])
             except bizhawk.RequestFailedError:
                 pass

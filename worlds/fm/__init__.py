@@ -12,9 +12,9 @@ from .items import FMItem, create_victory_event, create_starchip_items, starchip
 from .utils import Constants, flatten
 from .locations import location_name_to_id as location_map
 from .locations import FMLocation, CardLocation, DuelistLocation
-from .cards import Card
+from .cards import Card, all_cards
 from .options import (FMOptions, DuelistProgression, Final6Progression, Final6Sequence, ATecTrap,
-                      duelist_progression_map)
+                      ItemMode, duelist_progression_map)
 from .duelists import Duelist, mage_pairs, map_duelists_to_ids
 from .drop_pools import DuelRank, Drop
 # This registers the client. The comment ignores "unused import" linter messages
@@ -139,7 +139,7 @@ class FMWorld(World):
             loc = CardLocation(free_duel_region, self.player, logic_card.card, logic_card.accessible_drops)
             card_locations.append(loc)
 
-        # Tracker doesn't care about these. The logic is irrevelant; they are exlcuded from the pool
+        # Tracker doesn't care about these. The logic is irrevelant; they are excluded from the pool
         # and guaranteed to be worthless
         for out_of_logic_card in [
             c for c in valid_cards_for_locations if c.id not in map(lambda c: c.card.id, in_logic_cards)
@@ -149,8 +149,22 @@ class FMWorld(World):
             card_locations.append(loc)
         for loc in card_locations:
             set_rule(loc, lambda state, card_location=loc: self.is_card_location_accessible(card_location, state))
-        free_duel_region.locations.extend(card_locations)
 
+        # Handle half-check mode if set
+        reward_cards: typing.List[Card] = []
+        if self.options.item_mode.value == ItemMode.option_cards:
+            reward_pool_size = len(card_locations) // 2
+            reward_indices: typing.List[int] = self.random.sample(range(len(card_locations)), reward_pool_size)
+            reward_card_locations: typing.List[CardLocation] = [
+                card for i, card in enumerate(card_locations) if i not in reward_indices
+            ]
+            card_locations = [card for card in card_locations if card not in reward_card_locations]
+            if self.options.unobtainable_rewards:
+                reward_cards = [card for card in all_cards if card not in [cl.card for cl in card_locations]]
+            else:
+                reward_cards = [loc.card for loc in reward_card_locations]
+
+        free_duel_region.locations.extend(card_locations)
         # Add duelist locations
         # Hold a reference to these to set locked items and victory event
         final_6_duelist_locations: typing.List[DuelistLocation] = []
@@ -193,8 +207,17 @@ class FMWorld(World):
         assert (
             sum(1 for loc in free_duel_region.locations if not loc.item) - len(itempool) == filler_slots
         ), "Filler slots and filler locations do not match."
-        starchip_items: typing.List[FMItem] = create_starchip_items(self.player, filler_slots, self.random)
-        if self.options.local_starchips:
+        starchip_items: typing.List[FMItem] = []
+        if self.options.item_mode.value == ItemMode.option_starchips:
+            starchip_items += create_starchip_items(self.player, filler_slots, self.random)
+        elif self.options.item_mode.value == ItemMode.option_cards:
+            self.random.shuffle(reward_cards)
+            # For some reason, additional (16) locations go unfilled, so double-up the item pool to fill them
+            reward_cards += reward_cards
+            itempool += [fabricate_item(card.name, self.player) for card in reward_cards][:filler_slots]
+        else:
+            raise ValueError(f"Invalid ItemMode: {self.options.item_mode.value}")
+        if self.options.local_starchips and self.options.item_mode.value == ItemMode.option_starchips:
             assert all([x.code for x in starchip_items])
             starchip_items.sort(key=lambda x: starchip_item_ids_to_starchip_values[x.code] if x.code else 0)
             split_index: int = len(starchip_items) * 3 // 4
