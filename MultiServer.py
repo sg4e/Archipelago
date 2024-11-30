@@ -740,14 +740,10 @@ class Context:
             self.logger.info("Notice (Team #%d): %s" % (team + 1, format_hint(self, team, hint)))
         for slot in new_hint_events:
             self.on_new_hint(team, slot)
-        for slot, hint_data in concerns.items():
-            if recipients is None or slot in recipients:
-                clients = self.clients[team].get(slot)
-                if not clients:
-                    continue
-                client_hints = [datum[1] for datum in sorted(hint_data, key=lambda x: x[0].finding_player != slot)]
-                for client in clients:
-                    async_start(self.send_msgs(client, client_hints))
+        dumped_hints = [ h.as_network_message() for h in hints ]
+        clients = [client for client_list in self.clients[team].values() for client in client_list]
+        for client in clients:
+            async_start(self.send_msgs(client, dumped_hints))
 
     # "events"
 
