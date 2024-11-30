@@ -1459,19 +1459,7 @@ class ClientMessageProcessor(CommonCommandProcessor):
     @mark_raw
     def _cmd_alias(self, alias_name: str = ""):
         """Set your alias to the passed name."""
-        if alias_name:
-            alias_name = alias_name[:16].strip()
-            self.ctx.name_aliases[self.client.team, self.client.slot] = alias_name
-            self.output(f"Hello, {alias_name}")
-            update_aliases(self.ctx, self.client.team)
-            self.ctx.save()
-            return True
-        elif (self.client.team, self.client.slot) in self.ctx.name_aliases:
-            del (self.ctx.name_aliases[self.client.team, self.client.slot])
-            self.output("Removed Alias")
-            update_aliases(self.ctx, self.client.team)
-            self.ctx.save()
-            return True
+        self.output("Sorry, aliases are not supported on this server.")
         return False
 
     @mark_raw
@@ -1969,27 +1957,8 @@ class ServerCommandProcessor(CommonCommandProcessor):
     @mark_raw
     def _cmd_alias(self, player_name_then_alias_name):
         """Set a player's alias, by listing their base name and then their intended alias."""
-        player_name, _, alias_name = player_name_then_alias_name.partition(" ")
-        player_name, usable, response = get_intended_text(player_name, self.ctx.player_names.values())
-        if usable:
-            for (team, slot), name in self.ctx.player_names.items():
-                if name == player_name:
-                    if alias_name:
-                        alias_name = alias_name.strip()[:15]
-                        self.ctx.name_aliases[team, slot] = alias_name
-                        self.output(f"Named {player_name} as {alias_name}")
-                        update_aliases(self.ctx, team)
-                        self.ctx.save()
-                        return True
-                    else:
-                        del (self.ctx.name_aliases[team, slot])
-                        self.output(f"Removed Alias for {player_name}")
-                        update_aliases(self.ctx, team)
-                        self.ctx.save()
-                        return True
-        else:
-            self.output(response)
-            return False
+        self.output("Sorry, aliases are not supported on this server.")
+        return False
 
     def resolve_player(self, input_name: str) -> typing.Optional[typing.Tuple[int, int, str]]:
         """ returns (team, slot, player name) """
