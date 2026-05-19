@@ -60,6 +60,10 @@ server_per_message_deflate_factory = ServerPerMessageDeflateFactory(
     compress_settings={"memLevel": 4},
 )
 
+FUWAWA_BOT_TAG = "FuwawaBot"
+FUWAWA_STATE_SCHEMA = "fuwawa_state"
+FUWAWA_TEAM = 0
+
 
 def remove_from_list(container, value):
     try:
@@ -575,6 +579,7 @@ class Context:
             self.read_data[f"item_name_groups_{game_name}"] = lambda lgame=game_name: self.item_name_groups[lgame]
         for game_name, data in self.location_name_groups.items():
             self.read_data[f"location_name_groups_{game_name}"] = lambda lgame=game_name: self.location_name_groups[lgame]
+        self.read_data["fuwawa_state"] = self.get_fuwawa_state
 
         # sorted access spheres
         self.spheres = decoded_obj.get("spheres", [])
@@ -802,6 +807,147 @@ class Context:
         else:
             return self.player_names[team, slot]
 
+    def get_fuwawa_state(self) -> dict[str, typing.Any]:
+        """Structured monitor snapshot for FuwawaBot.
+
+        This intentionally mirrors durable server state instead of rendered text so the bot can reconcile missed updates
+        after reconnecting without parsing chat messages.
+        """
+        self.recheck_hints(FUWAWA_TEAM)
+        hints = set()
+        for (team, _slot), slot_hints in self.hints.items():
+            if team == FUWAWA_TEAM:
+                hints.update(slot_hints)
+
+        items: list[dict[str, typing.Any]] = []
+        for (team, player, remote_items), received_items in sorted(self.received_items.items()):
+            if team != FUWAWA_TEAM or not remote_items:
+                continue
+            for index, item in enumerate(received_items):
+                items.append(self.fuwawa_item_payload(team, player, item, index))
+
+        statuses = []
+        goals = []
+        for slot in sorted(self.slot_info):
+            status = int(self.client_game_state[FUWAWA_TEAM, slot])
+            status_payload = {
+                "team": FUWAWA_TEAM,
+                "slot": slot,
+                "player_name": self.player_names.get((FUWAWA_TEAM, slot), self.slot_info[slot].name),
+                "status": status,
+            }
+            statuses.append(status_payload)
+            if status == ClientStatus.CLIENT_GOAL:
+                goals.append(self.fuwawa_goal_payload(FUWAWA_TEAM, slot))
+
+        return {
+            "schema": FUWAWA_STATE_SCHEMA,
+            "type": "snapshot",
+            "team": FUWAWA_TEAM,
+            "slots": [self.fuwawa_slot_payload(FUWAWA_TEAM, slot) for slot in sorted(self.slot_info)],
+            "items": items,
+            "hints": [
+                self.fuwawa_hint_payload(FUWAWA_TEAM, hint)
+                for hint in sorted(hints, key=lambda h: (
+                    h.receiving_player, h.finding_player, h.location, h.item, h.entrance
+                ))
+            ],
+            "statuses": statuses,
+            "goals": goals,
+        }
+
+    def fuwawa_slot_payload(self, team: int, slot: int) -> dict[str, typing.Any]:
+        slot_info = self.slot_info[slot]
+        return {
+            "team": team,
+            "slot": slot,
+            "name": self.player_names.get((team, slot), slot_info.name),
+            "alias": self.name_aliases.get((team, slot)),
+            "game": slot_info.game,
+            "type": int(slot_info.type),
+            "group_members": list(slot_info.group_members),
+        }
+
+    def fuwawa_item_payload(self, team: int, receiving_player: int, item: NetworkItem,
+                            index: int) -> dict[str, typing.Any]:
+        receiving_slot = self.slot_info[receiving_player]
+        finding_slot = self.slot_info.get(item.player)
+        location_name = None
+        if finding_slot and item.location >= 0:
+            location_name = self.location_names[finding_slot.game][item.location]
+        return {
+            "schema": FUWAWA_STATE_SCHEMA,
+            "type": "item",
+            "event_key": f"item:{team}:{receiving_player}:{index}",
+            "team": team,
+            "receiver_slot": receiving_player,
+            "receiver_name": self.player_names.get((team, receiving_player), receiving_slot.name),
+            "receiver_game": receiving_slot.game,
+            "sender_slot": item.player,
+            "sender_name": self.player_names.get((team, item.player), "Archipelago"),
+            "sender_game": finding_slot.game if finding_slot else None,
+            "item_id": item.item,
+            "item_name": self.item_names[receiving_slot.game][item.item],
+            "location_id": item.location,
+            "location_name": location_name,
+            "flags": item.flags,
+            "index": index,
+        }
+
+    def fuwawa_hint_payload(self, team: int, hint: Hint) -> dict[str, typing.Any]:
+        receiving_slot = self.slot_info[hint.receiving_player]
+        finding_slot = self.slot_info[hint.finding_player]
+        return {
+            "schema": FUWAWA_STATE_SCHEMA,
+            "type": "hint",
+            "event_key": f"hint:{team}:{hint.receiving_player}:{hint.finding_player}:"
+                         f"{hint.location}:{hint.item}:{hint.entrance}",
+            "team": team,
+            "receiver_slot": hint.receiving_player,
+            "receiver_name": self.player_names.get((team, hint.receiving_player), receiving_slot.name),
+            "receiver_game": receiving_slot.game,
+            "finder_slot": hint.finding_player,
+            "finder_name": self.player_names.get((team, hint.finding_player), finding_slot.name),
+            "finder_game": finding_slot.game,
+            "item_id": hint.item,
+            "item_name": self.item_names[receiving_slot.game][hint.item],
+            "location_id": hint.location,
+            "location_name": self.location_names[finding_slot.game][hint.location],
+            "entrance_name": hint.entrance,
+            "flags": hint.item_flags,
+            "found": hint.found,
+            "status": int(hint.status),
+            "status_name": status_names.get(hint.status, "(unknown)"),
+        }
+
+    def fuwawa_goal_payload(self, team: int, slot: int) -> dict[str, typing.Any]:
+        slot_info = self.slot_info[slot]
+        return {
+            "schema": FUWAWA_STATE_SCHEMA,
+            "type": "goal",
+            "event_key": f"goal:{team}:{slot}",
+            "team": team,
+            "slot": slot,
+            "player_name": self.player_names.get((team, slot), slot_info.name),
+            "game": slot_info.game,
+            "status": int(ClientStatus.CLIENT_GOAL),
+        }
+
+    def broadcast_fuwawa_state_event(self, event: dict[str, typing.Any]) -> None:
+        monitors = [
+            endpoint for endpoint in self.endpoints
+            if endpoint.auth and FUWAWA_BOT_TAG in endpoint.tags
+        ]
+        if not monitors:
+            return
+        self.broadcast(monitors, [{
+            "cmd": "Bounced",
+            "games": [],
+            "slots": [],
+            "tags": [FUWAWA_BOT_TAG],
+            "data": {"schema": FUWAWA_STATE_SCHEMA, "event": event},
+        }])
+
     def notify_hints(self, team: int, hints: typing.List[Hint], only_new: bool = False,
                      persist_even_if_found: bool = False, recipients: typing.Sequence[int] = None):
         """Send and remember hints."""
@@ -829,6 +975,8 @@ class Context:
                     for player in self.slot_set(hint.receiving_player):
                         self.hints[team, player].add(hint)
                         new_hint_events.add(player)
+                    if team == FUWAWA_TEAM:
+                        self.broadcast_fuwawa_state_event(self.fuwawa_hint_payload(team, hint))
 
             self.logger.info("Notice (Team #%d): %s" % (team + 1, format_hint(self, team, hint)))
         for slot in new_hint_events:
@@ -859,6 +1007,8 @@ class Context:
         finished_msg = f'{self.get_aliased_name(client.team, client.slot)} (Team #{client.team + 1})' \
                        f' has completed their goal.'
         self.broadcast_text_all(finished_msg, {"type": "Goal", "team": client.team, "slot": client.slot})
+        if client.team == FUWAWA_TEAM:
+            self.broadcast_fuwawa_state_event(self.fuwawa_goal_payload(client.team, client.slot))
         if "auto" in self.collect_mode:
             collect_player(self, client.team, client.slot)
         if "auto" in self.release_mode:
@@ -1128,7 +1278,12 @@ def send_items_to(ctx: Context, team: int, target_slot: int, *items: NetworkItem
         for item in items:
             if item.player != target_slot:
                 get_received_items(ctx, team, target, False).append(item)
-            get_received_items(ctx, team, target, True).append(item)
+            remote_received_items = get_received_items(ctx, team, target, True)
+            remote_received_items.append(item)
+            if team == FUWAWA_TEAM:
+                ctx.broadcast_fuwawa_state_event(
+                    ctx.fuwawa_item_payload(team, target, item, len(remote_received_items) - 1)
+                )
 
 
 def register_location_checks(ctx: Context, team: int, slot: int, locations: typing.Iterable[int],
