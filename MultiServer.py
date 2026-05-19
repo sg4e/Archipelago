@@ -810,14 +810,8 @@ class Context:
         if not hints:
             return
         new_hint_events: typing.Set[int] = set()
-        concerns = collections.defaultdict(list)
-        for hint in sorted(hints, key=operator.attrgetter('found'), reverse=True):
-            data = (hint, hint.as_network_message())
-            for player in self.slot_set(hint.receiving_player):
-                concerns[player].append(data)
-            if not hint.local and data not in concerns[hint.finding_player]:
-                concerns[hint.finding_player].append(data)
-
+        sorted_hints = sorted(hints, key=operator.attrgetter('found'), reverse=True)
+        for hint in sorted_hints:
             # For !hint use cases, only hints that were not already found at the time of creation should be remembered
             # For LocationScouts use-cases, all hints should be remembered
             if not hint.found or persist_even_if_found:
@@ -833,14 +827,11 @@ class Context:
             self.logger.info("Notice (Team #%d): %s" % (team + 1, format_hint(self, team, hint)))
         for slot in new_hint_events:
             self.on_new_hint(team, slot)
-        for slot, hint_data in concerns.items():
-            if recipients is None or slot in recipients:
-                clients = filter(lambda c: not c.no_text, self.clients[team].get(slot, []))
-                if not clients:
-                    continue
-                client_hints = [datum[1] for datum in sorted(hint_data, key=lambda x: x[0].finding_player != slot)]
-                for client in clients:
-                    async_start(self.send_msgs(client, client_hints))
+
+        dumped_hints = [hint.as_network_message() for hint in sorted_hints]
+        clients = (client for client_list in self.clients[team].values() for client in client_list if not client.no_text)
+        for client in clients:
+            async_start(self.send_msgs(client, dumped_hints))
 
     def get_hint(self, team: int, finding_player: int, seeked_location: int) -> typing.Optional[Hint]:
         for hint in self.hints[team, finding_player]:
@@ -1686,10 +1677,6 @@ class ClientMessageProcessor(CommonCommandProcessor):
             self.ctx.notify_hints(self.client.team, list(hints), recipients=(self.client.slot,))
             self.output(f"A hint costs {self.ctx.get_hint_cost(self.client.slot)} points. "
                         f"You have {points_available} points.")
-            if hints and Utils.version_tuple < (0, 5, 0):
-                self.output("It was recently changed, so that the above hints are only shown to you. "
-                            "If you meant to alert another player of an above hint, "
-                            "please let them know of the content or to run !hint themselves.")
             return True
 
         elif input_text.isnumeric():
