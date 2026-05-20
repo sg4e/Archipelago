@@ -21,9 +21,10 @@ import Utils
 
 from MultiServer import (
     Context, server, auto_shutdown, ServerCommandProcessor, ClientMessageProcessor, load_server_cert,
-    server_per_message_deflate_factory,
+    server_per_message_deflate_factory, mark_raw,
 )
 from Utils import restricted_loads, cache_argsless
+from WebHostLib.fuwawa.events import goal_payload_from_context, hint_payload_from_context, item_payload_from_context, text_payload_from_context
 from .locker import Locker
 from .models import Command, GameDataPackage, Room, db
 
@@ -52,18 +53,42 @@ class CustomClientMessageProcessor(ClientMessageProcessor):
 import MultiServer
 
 MultiServer.client_message_processor = CustomClientMessageProcessor
-del MultiServer
+_original_send_items_to = MultiServer.send_items_to
+
+
+def fuwawa_send_items_to(ctx: Context, team: int, target_slot: int, *items):
+    before_counts = {}
+    if isinstance(ctx, WebHostContext):
+        before_counts = {
+            target: len(MultiServer.get_received_items(ctx, team, target, True))
+            for target in ctx.slot_set(target_slot)
+        }
+    _original_send_items_to(ctx, team, target_slot, *items)
+    if isinstance(ctx, WebHostContext):
+        for target in ctx.slot_set(target_slot):
+            for offset, item in enumerate(items):
+                ctx.fuwawa_emit(item_payload_from_context(ctx, team, target, item, before_counts[target] + offset))
+
+
+MultiServer.send_items_to = fuwawa_send_items_to
 
 
 class DBCommandProcessor(ServerCommandProcessor):
     def output(self, text: str):
         self.ctx.logger.info(text)
 
+    @mark_raw
+    def _cmd_fuwawa_say(self, text: str):
+        """Broadcast a Discord-originated chat bridge message without echoing it back to Discord."""
+        self.ctx.broadcast_text_all(text, {"type": "FuwawaDiscordBridge", "message": text})
+        return True
+
 
 class WebHostContext(Context):
     room_id: int
 
-    def __init__(self, static_server_data: dict, logger: logging.Logger):
+    def __init__(self, static_server_data: dict, logger: logging.Logger, fuwawa_config: dict | None = None,
+                 fuwawa_ap_to_discord_queue: multiprocessing.Queue | None = None):
         # static server data is used during _load_game_data to load required data,
         # without needing to import worlds system, which takes quite a bit of memory
         self.static_server_data = static_server_data
@@ -74,6 +99,8 @@ class WebHostContext(Context):
         self.main_loop = asyncio.get_running_loop()
         self.video = {}
         self.tags = ["AP", "WebHost"]
+        self.fuwawa_config = fuwawa_config or {}
+        self.fuwawa_ap_to_discord_queue = fuwawa_ap_to_discord_queue
 
     def __del__(self):
         try:
@@ -180,6 +207,33 @@ class WebHostContext(Context):
         d["video"] = [(tuple(playerslot), videodata) for playerslot, videodata in self.video.items()]
         return d
 
+    def broadcast_text_all(self, text: str, additional_arguments: dict = {}):
+        super(WebHostContext, self).broadcast_text_all(text, additional_arguments)
+        message_type = additional_arguments.get("type")
+        if message_type in {"FuwawaDiscordBridge", "Goal", "CommandResult", "AdminCommandResult", "Tutorial"}:
+            return
+        self.fuwawa_emit(text_payload_from_context(self, text, message_type))
+
+    def notify_hints(self, team: int, hints: typing.List[NetUtils.Hint], only_new: bool = False,
+                     persist_even_if_found: bool = False, recipients: typing.Sequence[int] = None):
+        hints_to_consider = [hint for hint in hints if not only_new or hint not in self.hints[team, hint.finding_player]]
+        new_hints = [
+            hint for hint in hints_to_consider
+            if (not hint.found or persist_even_if_found) and hint not in self.hints[team, hint.finding_player]
+        ]
+        super(WebHostContext, self).notify_hints(team, hints, only_new, persist_even_if_found, recipients)
+        for hint in new_hints:
+            self.fuwawa_emit(hint_payload_from_context(self, team, hint))
+
+    def on_goal_achieved(self, client):
+        super(WebHostContext, self).on_goal_achieved(client)
+        self.fuwawa_emit(goal_payload_from_context(self, client.team, client.slot))
+
+    def fuwawa_emit(self, payload: dict) -> None:
+        if not self.fuwawa_config.get("ENABLED") or not self.fuwawa_ap_to_discord_queue:
+            return
+        self.fuwawa_ap_to_discord_queue.put(payload)
+
 
 def get_random_port():
     return random.randint(49152, 65535)
@@ -247,7 +301,10 @@ def tear_down_logging(room_id):
 
 def run_server_process(name: str, ponyconfig: dict, static_server_data: dict,
                        cert_file: typing.Optional[str], cert_key_file: typing.Optional[str],
-                       host: str, rooms_to_run: multiprocessing.Queue, rooms_shutting_down: multiprocessing.Queue):
+                       host: str, rooms_to_run: multiprocessing.Queue, rooms_shutting_down: multiprocessing.Queue,
+                       fuwawa_config: dict | None = None,
+                       fuwawa_ap_to_discord_queue: multiprocessing.Queue | None = None,
+                       fuwawa_discord_to_ap_queue: multiprocessing.Queue | None = None):
     from setproctitle import setproctitle
 
     setproctitle(name)
@@ -264,6 +321,7 @@ def run_server_process(name: str, ponyconfig: dict, static_server_data: dict,
         del resource, file_limit
 
     # establish DB connection for multidata and multisave
+    import WebHostLib.fuwawa.models  # noqa: F401  # register optional Pony entities before mapping in room hosts
     db.bind(**ponyconfig)
     db.generate_mapping(check_tables=False)
 
@@ -292,12 +350,25 @@ def run_server_process(name: str, ponyconfig: dict, static_server_data: dict,
 
     loop = asyncio.get_event_loop()
 
+    active_contexts: dict[str, WebHostContext] = {}
+
+    def process_fuwawa_discord_message(payload: dict) -> None:
+        room_id = payload.get("room_id")
+        command = payload.get("command")
+        ctx = active_contexts.get(room_id)
+        if not ctx or not command:
+            return
+        cmdprocessor = DBCommandProcessor(ctx)
+        ctx.main_loop.call_soon_threadsafe(cmdprocessor, command)
+
     async def start_room(room_id):
         with Locker(f"RoomLocker {room_id}"):
+            ctx = None
             try:
                 logger = set_up_logging(room_id)
-                ctx = WebHostContext(static_server_data, logger)
+                ctx = WebHostContext(static_server_data, logger, fuwawa_config, fuwawa_ap_to_discord_queue)
                 ctx.load(room_id)
+                active_contexts[str(ctx.room_id)] = ctx
                 ctx.init_save()
                 assert ctx.server is None
                 try:
@@ -356,6 +427,10 @@ def run_server_process(name: str, ponyconfig: dict, static_server_data: dict,
                     setattr(asyncio.current_task(), "save", None)
             finally:
                 try:
+                    if ctx:
+                        active_contexts.pop(str(ctx.room_id), None)
+                    if ctx is None:
+                        return
                     ctx.save_dirty = False  # make sure the saving thread does not write to DB after final wakeup
                     ctx.exit_event.set()  # make sure the saving thread stops at some point
                     # NOTE: async saving should probably be an async task and could be merged with shutdown_task
@@ -396,9 +471,21 @@ def run_server_process(name: str, ponyconfig: dict, static_server_data: dict,
                 logging.info(f"Starting room {next_room} on {name}.")
                 del task  # delete reference to task object
 
+    class FuwawaDiscordListener(threading.Thread):
+        def __init__(self):
+            super().__init__(name=f"{name} Fuwawa Discord Listener")
+            self.daemon = True
+
+        def run(self):
+            while True:
+                payload = fuwawa_discord_to_ap_queue.get(block=True, timeout=None)
+                loop.call_soon_threadsafe(process_fuwawa_discord_message, payload)
+
     starter = Starter()
     starter.daemon = True
     starter.start()
+    if fuwawa_config and fuwawa_config.get("ENABLED") and fuwawa_discord_to_ap_queue:
+        FuwawaDiscordListener().start()
     try:
         loop.run_forever()
     finally:

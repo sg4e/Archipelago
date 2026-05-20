@@ -33,6 +33,7 @@ class Room(db.Entity):
     tracker = Optional(UUID, index=True)
     # Port special value -1 means the server errored out. Another attempt can be made with a page refresh
     last_port = Optional(int, default=lambda: 0)
+    fuwawa_multiworlds = Set('FuwawaMultiworld')
 
 
 class Seed(db.Entity):

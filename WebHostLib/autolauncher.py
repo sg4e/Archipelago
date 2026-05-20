@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import multiprocessing
+import queue
 import typing
 from datetime import timedelta
 from threading import Event, Thread
@@ -96,6 +97,7 @@ def init_generator(config: dict[str, Any]) -> None:
         del resource, soft_limit, hard_limit
 
     pony_config = config["PONY"]
+    import WebHostLib.fuwawa.models  # noqa: F401  # register optional Pony entities before mapping in spawned workers
     db.bind(**pony_config)
     db.generate_mapping()
 
@@ -113,7 +115,7 @@ def cleanup():
         logging.info(f"{rooms} Rooms, {seeds} Seeds and {slots} Slots have been deleted.")
 
 
-def autohost(config: dict):
+def autohost(config: dict, fuwawa_ap_to_discord_queue=None, fuwawa_discord_to_ap_queue=None):
     def keep_running():
         stop_event = _stop_event
         try:
@@ -121,11 +123,23 @@ def autohost(config: dict):
                 cleanup()
                 hosters = []
                 for x in range(config["HOSTERS"]):
-                    hoster = MultiworldInstance(config, x)
+                    hoster = MultiworldInstance(config, x, fuwawa_ap_to_discord_queue)
                     hosters.append(hoster)
                     hoster.start()
 
                 while not stop_event.wait(0.1):
+                    if fuwawa_discord_to_ap_queue:
+                        while True:
+                            try:
+                                payload = fuwawa_discord_to_ap_queue.get_nowait()
+                            except queue.Empty:
+                                break
+                            try:
+                                room_id = UUID(payload["room_id"])
+                            except Exception:
+                                logging.exception("Fuwawa received invalid Discord-to-AP payload: %r", payload)
+                                continue
+                            hosters[room_id.int % len(hosters)].send_discord_message(payload)
                     with db_session:
                         rooms = select(
                             room for room in Room if
@@ -181,13 +195,16 @@ def autogen(config: dict):
 
 
 class MultiworldInstance():
-    def __init__(self, config: dict, id: int):
+    def __init__(self, config: dict, id: int, fuwawa_ap_to_discord_queue=None):
         self.room_ids = set()
         self.process: typing.Optional[multiprocessing.Process] = None
         self.ponyconfig = config["PONY"]
         self.cert = config["SELFLAUNCHCERT"]
         self.key = config["SELFLAUNCHKEY"]
         self.host = config["HOST_ADDRESS"]
+        self.fuwawa_config = config.get("FUWAWA", {})
+        self.fuwawa_ap_to_discord_queue = fuwawa_ap_to_discord_queue
+        self.fuwawa_discord_to_host_queue = multiprocessing.Queue()
         self.rooms_to_start = multiprocessing.Queue()
         self.rooms_shutting_down = multiprocessing.Queue()
         self.name = f"MultiHoster{id}"
@@ -199,7 +216,10 @@ class MultiworldInstance():
         process = multiprocessing.Process(group=None, target=run_server_process,
                                           args=(self.name, self.ponyconfig, get_static_server_data(),
                                                 self.cert, self.key, self.host,
-                                                self.rooms_to_start, self.rooms_shutting_down),
+                                                self.rooms_to_start, self.rooms_shutting_down,
+                                                self.fuwawa_config,
+                                                self.fuwawa_ap_to_discord_queue,
+                                                self.fuwawa_discord_to_host_queue),
                                           name=self.name)
         process.start()
         self.process = process
@@ -212,6 +232,9 @@ class MultiworldInstance():
         else:
             self.room_ids.add(room_id)
             self.rooms_to_start.put(room_id)
+
+    def send_discord_message(self, payload: dict) -> None:
+        self.fuwawa_discord_to_host_queue.put(payload)
 
     def stop(self):
         if self.process:

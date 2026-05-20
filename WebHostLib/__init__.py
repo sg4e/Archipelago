@@ -64,6 +64,18 @@ app.config["MAX_ROLL"] = 20
 app.config["CACHE_TYPE"] = "SimpleCache"
 app.config["HOST_ADDRESS"] = ""
 app.config["ASSET_RIGHTS"] = False
+app.config["FUWAWA"] = {
+    "ENABLED": False,
+    "DISCORD_TOKEN": "",
+    "GUILD_ID": 0,
+    "CHANNEL_ID": 0,
+    "SYNC_COMMANDS": False,
+    "BRIDGE_DISCORD_MESSAGES": False,
+    "ADMIN_ROLE_IDS": [],
+    "SONGS": [],
+    "YAML_FOLDER": "fuwawa_yamls",
+    "KEEPALIVE_TIMEOUT_SECONDS": 2147483647,
+}
 
 cache = Cache()
 Compress(app)

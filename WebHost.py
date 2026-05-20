@@ -28,6 +28,7 @@ if not os.path.exists(configpath):
 def get_app() -> "Flask":
     from WebHostLib import register, cache, app as raw_app
     from WebHostLib.models import db
+    import WebHostLib.fuwawa.models  # noqa: F401  # register optional Pony entities before mapping
 
     app = raw_app
     if os.path.exists(configpath) and not app.config["TESTING"]:
@@ -119,8 +120,14 @@ if __name__ == "__main__":
     AutoWorldRegister.world_types = {k: v for k, v in AutoWorldRegister.world_types.items() if k not in invalid_worlds}
     create_options_files()
     copy_tutorials_files_to_static()
+    from WebHostLib.fuwawa.bus import create_event_queues
+    from WebHostLib.fuwawa.bot import start_worker as start_fuwawa_worker
+    fuwawa_ap_to_discord_queue, fuwawa_discord_to_ap_queue = create_event_queues()
+    fuwawa_worker = start_fuwawa_worker(app, fuwawa_ap_to_discord_queue, fuwawa_discord_to_ap_queue)
+    if fuwawa_worker:
+        logging.info(f"Started Fuwawa Discord worker thread {fuwawa_worker.name}.")
     if app.config["SELFLAUNCH"]:
-        autohost(app.config)
+        autohost(app.config, fuwawa_ap_to_discord_queue, fuwawa_discord_to_ap_queue)
     if app.config["SELFGEN"]:
         autogen(app.config)
     if app.config["SELFHOST"]:  # using WSGI, you just want to run get_app()
